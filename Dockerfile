@@ -1,13 +1,11 @@
 FROM debian 
-# Based on ozzyjohnson/mininet
+
 MAINTAINER Yossi Solomon <yosisolomon@gmail.com>
 
 ENV DEBIAN_FRONTEND noninteractive 
 
 ENV MININET_REPO https://github.com/mininet/mininet.git 
-ENV MININET_INSTALLER mininet/util/install.sh 
-
-ENV MLNET_REPO http://github.com/yossisolomon/ML-net
+ENV MININET_INSTALLER mininet/util/install.sh
 
 # Update and install minimal.
 RUN \
@@ -78,9 +76,9 @@ RUN wget http://traffic.comics.unina.it/software/ITG/codice/D-ITG-2.8.1-r1023-sr
     && make sctp=on dccp=on \
     && make install PREFIX=/usr/local
 
-# Clone and install ML-net
+# Add the repo files in (with .git so we can later upgrade at runtime)
 WORKDIR /root
-RUN git clone $MLNET_REPO
+ADD * .
 
 # Create SSH keys
 RUN cat /dev/zero | ssh-keygen -q -N ""
@@ -88,5 +86,5 @@ RUN cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 RUN chmod 400 /root/.ssh/*
 
 
-# Default command.
-ENTRYPOINT ["bash"]
+# Default command
+ENTRYPOINT ["docker-entry-point.sh"]
