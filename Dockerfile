@@ -52,6 +52,8 @@ RUN chmod 400 /root/.ssh/*
 # Add the repo files in (with .git so we can later upgrade at runtime)
 ADD .git ./.git
 
+ADD scripts ./scripts
+
 # Default command
 ADD docker-entry-point.sh ./
 ENTRYPOINT ["./docker-entry-point.sh"]
