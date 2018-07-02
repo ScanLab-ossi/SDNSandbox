@@ -57,13 +57,14 @@ fi
 # Start the Open Virtual Switch Service
 service openvswitch-switch start
 
-# Move to ML-net dir
-cd ~/ML-net/
-
-if [ $GET_LATEST == true ] ; then
-  # Update ML-net
-  git pull --rebase
+if [[ $GET_LATEST == true ]] ; then
+  # Update
+  git fetch
+  git reset --hard HEAD
 fi
+
+# Move to scripts dir
+cd ~/scripts
 
 if [[ $# -eq 1 ]]; then
   launch $1
