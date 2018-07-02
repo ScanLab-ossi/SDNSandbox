@@ -2,20 +2,23 @@
 set -e
 
 usage_and_exit() {
-  echo "docker run ML-net [options]"
-  echo "Run ML-net experiment with latest version from the GitHub repo"
+  echo "------------------------------------------------------------------------"
+  echo "Run SDN experiment [can get latest version from the GitHub repo]"
   echo "Assumes the experiment script, which handles the GraphML file is defined"
   echo "as $RUN_EXPERIMENT environment variable"
+  echo "Set $GET_LATEST as true to get the latest code from the repo before running"
   echo "options:"
   echo "    -h            display help information"
-  echo "    /path/file    run experiment with local file"
+  echo "    /path/file    run experiment with local topology graphml file"
   echo "    URL           download graphml from URL and run experiment with it"
   echo "Otherwise - exit with 1"
+  echo "NOTE: The container must run as root (privileged) to access network configurations in mininet"
   exit 1
 }
 
 check_is_graphml() {
   if [ ${GRAPHML: -8} != ".graphml" ]; then
+    echo "File is not GraphML - doesn't have the .graphml extension!"
     usage_and_exit
   fi
 }
@@ -33,7 +36,7 @@ launch() {
       url=$1
       GRAPHML="${url##*/}"
       check_is_graphml $GRAPHML
-      curl -s -o $GRAPHML $1
+      wget -O $GRAPHML $url
       $RUN_EXPERIMENT $GRAPHML
 
     # If first argument is an absolute file path then run the experiment with it
