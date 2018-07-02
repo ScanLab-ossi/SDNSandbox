@@ -92,7 +92,7 @@ def countdown(t):
 def setupITG( network ):
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
-        host.cmd( '~/ML-net/ITGRecv.sh &' )
+        host.cmd( '~/scripts/ITGRecv.sh &' )
 
     # DEBUGGING INFO
     print
@@ -109,10 +109,11 @@ def setupITG( network ):
 
     print "Waiting for the controller to finish setup..."
     countdown(3)
+    print "PingAll to make sure everything's OK"
     network.pingAllFull()
 
     try:
-        check_call(expanduser("~/ML-net/run_sim.sh"))
+        check_call(expanduser("~/scripts/run_senders.sh"))
     except CalledProcessError as e:
         print "Simulation ended with non zero returncode: " + str(e.returncode)
 
@@ -299,22 +300,28 @@ def add_switch_links(edge_set, id_node_name_dict, id_longitude_dict, id_latitude
 
 if __name__ == '__main__':
     args = parse_arguments()
-    edge_set, node_set, index_values_set = get_graph_sets_from_xml(args.input)
-    id_node_name_dict, id_longitude_dict, id_latitude_dict = get_dicts_from_node_set(node_set, index_values_set)
-    add_switches_with_linked_host_output = add_switches_with_linked_host(id_node_name_dict)
-    add_switch_links_output = add_switch_links(edge_set, id_node_name_dict, id_longitude_dict, id_latitude_dict, args.switch_bandwidth)
-    controller_ip_output = "controller_ip = '%s'"%args.controller_ip
+
     if args.debug:
         logging_output = "setLogLevel('debug')"
     else:
         logging_output = "setLogLevel('info')"
+
+    edge_set, node_set, index_values_set = get_graph_sets_from_xml(args.input)
+
+    id_node_name_dict, id_longitude_dict, id_latitude_dict = get_dicts_from_node_set(node_set, index_values_set)
+
+    add_switches_with_linked_host_output = add_switches_with_linked_host(id_node_name_dict)
+
+    add_switch_links_output = add_switch_links(edge_set, id_node_name_dict, id_longitude_dict, id_latitude_dict, args.switch_bandwidth)
+
+    controller_ip_output = "controller_ip = '%s'"%args.controller_ip
 
     with open(args.output, 'w') as f:
         f.write(output_code.format(add_switches_with_linked_host_output,
                                    add_switch_links_output,
                                    logging_output,
                                    controller_ip_output))
-    # give it executable permissions
+    # give the output executable permissions
     st = os.stat(args.output)
     os.chmod(args.output, st.st_mode | 0111)
 
