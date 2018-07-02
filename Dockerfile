@@ -1,11 +1,6 @@
-FROM debian 
+FROM debian:stretch 
 
-MAINTAINER Yossi Solomon <yosisolomon@gmail.com>
-
-ENV DEBIAN_FRONTEND noninteractive 
-
-ENV MININET_REPO https://github.com/mininet/mininet.git 
-ENV MININET_INSTALLER mininet/util/install.sh
+ARG DEBIAN_FRONTEND=noninteractive 
 
 # Update and install minimal.
 RUN \
@@ -16,50 +11,28 @@ RUN \
         --no-install-recommends \
         --no-install-suggests \
     git \
-    autoconf \
-    automake \
     ca-certificates \
-    libtool \
-    net-tools \
-    patch \
-    vim \
     g++ \
+    make \
+    automake \
+    autoconf \
     openssh-server \
     openssh-client \
     bc \
     unzip \
     wget \
-    python-numpy \
-    python-sklearn \
     python-netaddr \
     sudo \
     libsctp-dev \
+    mininet \
+    d-itg \
+    
 
 
 # Clean up packages.
     && apt-get clean \
 
 WORKDIR /tmp
-
-# install mininet
-RUN git clone $MININET_REPO \ 
-# A few changes to make the install script behave. 
-    && sed -e 's/sudo //g' \ 
-    -e 's/~\//\//g' \ 
-    -e 's/DEBIAN_FRONTEND=noninteractive//g' \
-    -e 's/git:/http:/g' \
-    -e 's/\(apt-get -y -q install\)/\1 --no-install-recommends --no-install-suggests/g' \ 
-    -i $MININET_INSTALLER \ 
-
-# Install script expects to find this. Easier than patching that part of the script. 
-    && touch /.bashrc \ 
-
-# Proceed with the install. 
-    && chmod +x $MININET_INSTALLER \ 
-    && ./$MININET_INSTALLER -nfv \ 
-# Clean up source. 
-    && rm -rf /tmp/mininet \ 
-    /tmp/openflow
 
 # install sflowtool
 RUN git clone http://github.com/sflow/sflowtool \
@@ -69,22 +42,16 @@ RUN git clone http://github.com/sflow/sflowtool \
     && make \
     && make install
 
-# install D-ITG
-RUN wget http://traffic.comics.unina.it/software/ITG/codice/D-ITG-2.8.1-r1023-src.zip \
-    && unzip D-ITG-2.8.1-r1023-src.zip \
-    && cd D-ITG-2.8.1-r1023/src \
-    && make sctp=on dccp=on \
-    && make install PREFIX=/usr/local
-
-# Add the repo files in (with .git so we can later upgrade at runtime)
 WORKDIR /root
-ADD * .
 
 # Create SSH keys
 RUN cat /dev/zero | ssh-keygen -q -N ""
 RUN cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 RUN chmod 400 /root/.ssh/*
 
+# Add the repo files in (with .git so we can later upgrade at runtime)
+ADD .git ./.git
 
 # Default command
-ENTRYPOINT ["docker-entry-point.sh"]
+ADD docker-entry-point.sh ./
+ENTRYPOINT ["./docker-entry-point.sh"]
