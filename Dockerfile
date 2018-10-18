@@ -1,6 +1,4 @@
-FROM debian:stretch 
-
-ARG DEBIAN_FRONTEND=noninteractive 
+FROM ubuntu:18.04
 
 # Update and install minimal.
 RUN \
@@ -21,14 +19,15 @@ RUN \
     bc \
     unzip \
     wget \
+    iputils-ping \
+    iproute2 \
+    net-tools \
     python-netaddr \
     sudo \
     libsctp-dev \
     mininet \
+    openvswitch-switch \
     d-itg \
-    
-
-
 # Clean up packages.
     && apt-get clean \
 
@@ -49,8 +48,9 @@ RUN cat /dev/zero | ssh-keygen -q -N ""
 RUN cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 RUN chmod 400 /root/.ssh/*
 
-# Add the repo files in (with .git so we can later upgrade at runtime)
-ADD .git ./.git
+# HACK around https://github.com/dotcloud/docker/issues/5490
+RUN apt-get install -y tcpdump
+RUN mv /usr/sbin/tcpdump /usr/bin/tcpdump
 
 ADD scripts ./scripts
 

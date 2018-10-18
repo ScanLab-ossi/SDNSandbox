@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-set -x
 
 if [[ -x $1 ]]
 then
@@ -22,14 +21,14 @@ sudo service ssh restart
 sudo service openvswitch-switch restart
 
 # create experiment folder
-EXP_DIR=$EXP_DIR/OUTPUT_`date  +%Y%m%d-%H%M%S`
+export EXP_DIR=$EXP_DIR/OUTPUT_`date  +%Y%m%d-%H%M%S`
 mkdir -p $EXP_DIR
 
 # backup experiment executable
 cp $1 $EXP_DIR
 
 # run experiment
-sudo $1 &> $EXP_DIR/experiment.log
+sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
 
 # cleanup mininet
 sudo mn -c

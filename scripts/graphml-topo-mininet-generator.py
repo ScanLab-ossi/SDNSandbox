@@ -26,7 +26,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.util import dumpNodeConnections
-from subprocess import check_call, CalledProcessError
+from subprocess import call
 from os.path import expanduser
 import time
 
@@ -57,6 +57,10 @@ def setupNetwork(controller_ip):
     "Create network and run simple performance test"
     topo = GeneratedTopo()
     net = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6653 ), link=TCLink)
+    # check if switches connected to controller
+    if not net.waitConnected(timeout=10,delay=1):
+        print "Controller appears to have not connect to switches!"
+        #exit(1)
     # adds root for ssh + starts net
     connectToRootNS(net)
     return net
@@ -107,16 +111,20 @@ def setupITG( network ):
         print host.name, host.IP()
     print
 
-    print "Waiting for the controller to finish setup..."
+    print "Waiting for the controller to finish network setup..."
     countdown(3)
     print "PingAll to make sure everything's OK"
     network.pingAllFull()
+    return network
 
-    try:
-        check_call(expanduser("~/scripts/run_senders.sh"))
-    except CalledProcessError as e:
-        print "Simulation ended with non zero returncode: " + str(e.returncode)
 
+def runExp():
+    code = call(expanduser("~/scripts/run_senders.sh"))
+    if code:
+        print "Simulation ended with non zero returncode: " + str(code)
+
+
+def cleanup(network):
     print "Killing ITGRecv(s)..."
     for host in network.hosts:
         host.cmd('kill %' + '/usr/sbin/sshd')
@@ -128,7 +136,9 @@ def setupITG( network ):
 if __name__ == '__main__':
     {2}
     {3}
-    setupITG(setupNetwork(controller_ip))
+    net = setupITG(setupNetwork(controller_ip))
+    runExp()
+    cleanup(net)
 '''
 
 
@@ -161,10 +171,10 @@ def get_graph_sets_from_xml(input_file, ns = "{http://graphml.graphdrawing.org/x
     return edge_set, node_set, index_values_set
 
 def remove_bad_chars(text):
-    chars = "\ `*_{}[]()>#+-.!$?'"
+    chars = "\ `*_{}[]()>#+-.,!$?'"
     for c in chars:
         if c in text:
-            text = text.replace(c, "_")
+            text = text.replace(c, "")
     return text
 
 

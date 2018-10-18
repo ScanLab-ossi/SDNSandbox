@@ -22,20 +22,22 @@ ip a | sed '/^ / d' - | cut -d: -f1,2 > $EXP_DIR/intfs-list
 ./set_ovs_sflow.sh
 
 # start collecting sflow datagrams
-sflowtool -k &> $EXP_DIR/sflow-datagrams &
+sflowtool -k -l &> $EXP_DIR/sflow-datagrams &
 
 # run the senders
 HOST_IP_ADDRESSES=`h=1 ; while (( $h <= $HOST_COUNT )) ; do echo 10.0.0.$((h++)) ; done`
 
+SSH_PROCS=""
 for host_addr in $HOST_IP_ADDRESSES ; do
 	HOST_CONF=$CONF_BASE/config-$host_addr
 
 	ssh $host_addr -o StrictHostKeyChecking=false $HOST_CONF > /dev/null &
+	SSH_PROCS="$SSH_PROCS $!"
 done
 
-wait
-
+echo "Waiting for senders (proc_ids = $SSH_PROCS )"
+wait $SSH_PROCS
 
 # stop datagram collection
-pkill -15 sflow
+pkill -15 sflowtool
 
