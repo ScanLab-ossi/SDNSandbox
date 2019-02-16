@@ -1,25 +1,6 @@
 #!/bin/bash
 
-GRAPHML=$1
-CONTROLLER=`getent ahostsv4 $CONTROLLER | head -n1 | cut -d" " -f1`
-
-
-if [[ ! $CONTROLLER =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
-then
-    echo "The CONTROLLER EnvVar is not set to the conroller hostname or IP (CONTROLLER==$CONTROLLER)... Exiting!"
-    exit 1
-fi
-
-echo Pinging the SDN controller:
-
-ping -c 3 $CONTROLLER
-if [[ $? -eq 0 ]]
-then
-    echo Ping to controller at ip-addr=$CONTROLLER OK!
-else
-    echo Unable to ping controller at ip-addr=$CONTROLLER... Exiting!
-    exit 1
-fi
+set -e
 
 if [[ -f $GRAPHML ]]
 then
@@ -29,9 +10,33 @@ else
     exit 1
 fi
 
-EXP_PY=/tmp/`basename $GRAPHML`-topo.py
-# generate experiment
-./graphml-topo-mininet-generator.py -i $GRAPHML -o $EXP_PY -c $CONTROLLER
+if [[ -z "$EXP_DIR" ]] ; then
+    echo "The value for the experiment directory (EXP_DIR) is not set"
+    exit 1
+fi
+# create experiment folder
+export EXP_DIR=$EXP_DIR/OUTPUT_`date  +%Y%m%d-%H%M%S`
+mkdir -p $EXP_DIR
+
+# backup experiment graphml
+cp $GRAPHML $EXP_DIR
+
+TOPO_CSV=$EXP_DIR/`basename $GRAPHML`-topo.csv
+# generate CSV
+./graphml-topo-to-csv.py -i $GRAPHML -o $TOPO_CSV
+
+EXP_PY=$EXP_DIR/`basename $GRAPHML`-topo.py
+
+./mininet-experiment-generator.py -i $TOPO_CSV -o $EXP_PY -c $CONTROLLER_IP
+
+# make sure needed services are running
+sudo service ssh restart
+sudo service openvswitch-switch restart
 
 # run experiment
-./run_experiment.sh $EXP_PY
+sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
+
+# cleanup mininet
+sudo mn -c
+
+echo The experiment files can be found in $EXP_DIR

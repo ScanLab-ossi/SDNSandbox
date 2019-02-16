@@ -16,8 +16,30 @@ usage_and_exit() {
   exit 1
 }
 
+convert_controller_name_to_ip() {
+    CONTROLLER_IP=`getent ahostsv4 $CONTROLLER | head -n1 | cut -d" " -f1`
+
+    if [[ ! $CONTROLLER_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+    then
+        echo "The CONTROLLER EnvVar is invalid:"
+        echo "(CONTROLLER==$CONTROLLER -> CONTROLLER_IP==$CONTROLLER_IP)... Exiting!"
+        exit 1
+    fi
+
+    echo Pinging the SDN controller:
+
+    ping -c 3 $CONTROLLER_IP
+    if [[ $? -eq 0 ]]
+    then
+        echo Ping to controller at ip-addr=$CONTROLLER_IP OK!
+    else
+        echo Unable to ping controller at ip-addr=$CONTROLLER_IP... Exiting!
+        exit 1
+    fi
+}
+
 check_is_graphml() {
-  if [ ${GRAPHML: -8} != ".graphml" ]; then
+  if [[ ${GRAPHML: -8} != ".graphml" ]]; then
     echo "File is not GraphML - doesn't have the .graphml extension!"
     usage_and_exit
   fi
@@ -26,12 +48,9 @@ check_is_graphml() {
 launch() {
   # If only a single option is given and it is "-h"
   # display help information
-  if [ $1 == "-h" ]; then
+  if [[ $1 == "-h" ]]; then
     usage_and_exit
   else
-
-    # Start the Open Virtual Switch Service
-    service openvswitch-switch start
 
     # Move to scripts dir
     cd ~/scripts
@@ -43,12 +62,12 @@ launch() {
       GRAPHML="${url##*/}"
       check_is_graphml $GRAPHML
       wget -O $GRAPHML $url
-      $RUN_EXPERIMENT $GRAPHML $CONTROLLER
+      CONTROLLER_IP=$CONTROLLER_IP GRAPHML=$GRAPHML $RUN_EXPERIMENT
 
     # If first argument is an absolute file path then run the experiment with it
     elif [[ $1 =~ ^/ ]]; then
       check_is_graphml $1
-      $RUN_EXPERIMENT $1 $CONTROLLER
+      CONTROLLER_IP=$CONTROLLER_IP GRAPHML=$GRAPHML $RUN_EXPERIMENT
 
     # Unknown argument
     else
