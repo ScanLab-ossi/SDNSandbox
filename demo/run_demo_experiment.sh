@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sudo docker run --privileged -t --rm \
+sudo docker run --privileged -it --rm \
             --mount=type=bind,source=/tmp,destination=/opt \
             --env EXP_DIR=/opt \
             --env RUN_EXPERIMENT=./run_topology_experiment.sh \

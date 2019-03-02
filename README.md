@@ -31,7 +31,7 @@ An automated sandbox for provider SDN testing &amp; research
 ### Running the experiment
 
 ```
-sudo docker run --privileged -t --rm \
+sudo docker run --privileged -it --rm \
             --mount=type=volume,source=$EXP_VOL,destination=/opt \
             --env EXP_DIR=/opt \
             --env RUN_EXPERIMENT=./run_topology_experiment.sh \
