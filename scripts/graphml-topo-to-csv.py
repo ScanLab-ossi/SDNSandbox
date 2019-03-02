@@ -47,7 +47,7 @@ def remove_bad_chars(text):
     return text
 
 
-def get_dicts_from_node_set(nodes, index_values, ns="{http://graphml.graphdrawing.org/xmlns}"):
+def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xmlns}"):
     # INITIALIZE VARIABLES TO SAVE FOUND DATA FIRST
     # for saving the current values
     node_name_value = ''
@@ -73,6 +73,8 @@ def get_dicts_from_node_set(nodes, index_values, ns="{http://graphml.graphdrawin
             if d.attrib['key'] == node_label_name:
                 # strip all whitespace from names so they can be used as id's
                 node_name_value = remove_bad_chars(d.text)
+                # Make name 4 letter long to use as switch name
+                node_name_value = node_name_value[:4]
             # longitude data
             if d.attrib['key'] == node_longitude_name:
                 node_longitude_value = d.text
@@ -90,16 +92,16 @@ def get_names_in_graphml(index_values):
     for i in index_values:
         if i.attrib['attr.name'] == 'label' and i.attrib['for'] == 'node':
             node_label_name_in_graphml = i.attrib['id']
+        else:
+            raise RuntimeError("Bad GraphML - missing node name label")
         if i.attrib['attr.name'] == 'Longitude':
             node_longitude_name_in_graphml = i.attrib['id']
+        else:
+            raise RuntimeError("Bad GraphML - missing node latitude label")
         if i.attrib['attr.name'] == 'Latitude':
             node_latitude_name_in_graphml = i.attrib['id']
-    if node_label_name_in_graphml == "":
-        raise RuntimeError("Bad GraphML - missing node name label")
-    if node_latitude_name_in_graphml == "":
-        raise RuntimeError("Bad GraphML - missing node latitude label")
-    if node_longitude_name_in_graphml == "":
-        raise RuntimeError("Bad GraphML - missing node longitude label")
+        else:
+            raise RuntimeError("Bad GraphML - missing node longitude label")
     return node_label_name_in_graphml, node_latitude_name_in_graphml, node_longitude_name_in_graphml
 
 
@@ -152,7 +154,7 @@ if __name__ == '__main__':
 
     edge_set, node_set, index_values_set = get_graph_sets_from_xml(args.input)
 
-    id_node_dict = get_dicts_from_node_set(node_set, index_values_set)
+    id_node_dict = get_id_node_map(node_set, index_values_set)
 
     links = get_switch_links(edge_set, id_node_dict)
 
