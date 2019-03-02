@@ -23,6 +23,7 @@ RUN \
     iproute2 \
     net-tools \
     python-netaddr \
+    python3 \
     sudo \
     libsctp-dev \
     mininet \
@@ -56,7 +57,4 @@ ADD scripts ./scripts
 
 # Default command
 ADD docker-entry-point.sh ./
-# HACK around https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html
-RUN apt-get install -y dumb-init
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["./docker-entry-point.sh"]
+ENTRYPOINT ["./docker-entry-point.sh"]

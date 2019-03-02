@@ -82,6 +82,8 @@ if [[ -v $RUN_EXPERIMENT ]]; then
   usage_and_exit
 fi
 
+convert_controller_name_to_ip
+
 if [[ $# -eq 1 ]]; then
   launch $1
 else

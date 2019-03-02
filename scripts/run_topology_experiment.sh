@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [[ -f $GRAPHML ]]
 then
     echo Running experiment with $GRAPHML
@@ -32,17 +34,17 @@ cp $GRAPHML $EXP_DIR
 
 TOPO_CSV=$EXP_DIR/`basename $GRAPHML`-topo.csv
 # generate CSV
-./graphml-topo-to-csv.py -i $GRAPHML -o $TOPO_CSV
+python3 ./graphml-topo-to-csv.py -i $GRAPHML -o $TOPO_CSV
 
 EXP_PY=$EXP_DIR/`basename $GRAPHML`-topo.py
 
-./mininet-experiment-generator.py -i $TOPO_CSV -o $EXP_PY -c $CONTROLLER_IP
+python3 ./mininet-experiment-generator.py -i $TOPO_CSV -o $EXP_PY -c $CONTROLLER_IP
 
 # make sure needed services are running
 sudo service ssh restart
 sudo service openvswitch-switch restart
 
 # run experiment
-sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
+sudo EXP_DIR=$EXP_DIR $EXP_PY &> $EXP_DIR/experiment.log
 
 end
