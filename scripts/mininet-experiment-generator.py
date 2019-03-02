@@ -81,7 +81,7 @@ def setupNetwork(controller_ip):
     countdown(3)
     print "PingAll to make sure everything's OK"
     network.pingAllFull()
-    return net
+    return network
 
 def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/8'] ):
     "Connect hosts to root namespace via switch. Starts network."
