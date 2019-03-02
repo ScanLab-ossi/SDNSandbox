@@ -29,6 +29,7 @@ from mininet.log import setLogLevel
 from mininet.util import dumpNodeConnections
 from subprocess import call
 from os.path import expanduser
+from sys import exit
 import time
 
 class GeneratedTopo( Topo ):
@@ -135,10 +136,18 @@ def cleanup(network):
 
 
 if __name__ == '__main__':
-    {2}
-    {3}
-    net = setupITG(setupNetwork(controller_ip))
-    runExp()
+    try:
+        {2}
+        {3}
+        net = setupITG(setupNetwork(controller_ip))
+    except KeyboardInterrupt:
+        print "Interrupted... Exiting..."
+        exit(0)
+    try:
+        runExp()
+    except KeyboardInterrupt:
+        cleanup(net)
+        exit(0)
     cleanup(net)
 '''
 

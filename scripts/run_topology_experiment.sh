@@ -14,6 +14,17 @@ if [[ -z "$EXP_DIR" ]] ; then
     echo "The value for the experiment directory (EXP_DIR) is not set"
     exit 1
 fi
+
+# trap ctrl-c and call end()
+trap end INT
+
+function end() {
+    # cleanup mininet
+    sudo mn -c
+
+    echo The experiment files can be found in $EXP_DIR
+}
+
 # create experiment folder
 export EXP_DIR=$EXP_DIR/OUTPUT_`date  +%Y%m%d-%H%M%S`
 mkdir -p $EXP_DIR
@@ -36,7 +47,4 @@ sudo service openvswitch-switch restart
 # run experiment
 sudo EXP_DIR=$EXP_DIR $1 &> $EXP_DIR/experiment.log
 
-# cleanup mininet
-sudo mn -c
-
-echo The experiment files can be found in $EXP_DIR
+end
