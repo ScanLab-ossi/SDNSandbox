@@ -92,16 +92,16 @@ def get_names_in_graphml(index_values):
     for i in index_values:
         if i.attrib['attr.name'] == 'label' and i.attrib['for'] == 'node':
             node_label_name_in_graphml = i.attrib['id']
-        else:
-            raise RuntimeError("Bad GraphML - missing node name label")
         if i.attrib['attr.name'] == 'Longitude':
             node_longitude_name_in_graphml = i.attrib['id']
-        else:
-            raise RuntimeError("Bad GraphML - missing node latitude label")
         if i.attrib['attr.name'] == 'Latitude':
             node_latitude_name_in_graphml = i.attrib['id']
-        else:
-            raise RuntimeError("Bad GraphML - missing node longitude label")
+    if node_label_name_in_graphml == "":
+        raise RuntimeError("Bad GraphML - missing node name label")
+    if node_latitude_name_in_graphml == "":
+        raise RuntimeError("Bad GraphML - missing node latitude label")
+    if node_longitude_name_in_graphml == "":
+        raise RuntimeError("Bad GraphML - missing node longitude label")
     return node_label_name_in_graphml, node_latitude_name_in_graphml, node_longitude_name_in_graphml
 
 
