@@ -113,7 +113,6 @@ def setupITG( network ):
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
         host.cmd( '~/scripts/ITGRecv.sh &' )
-    return network
 
 
 def runExp():
@@ -125,8 +124,8 @@ def runExp():
 def cleanup(network):
     print "Killing ITGRecv(s)..."
     for host in network.hosts:
-        host.cmd('kill %' + '/usr/sbin/sshd')
-        host.cmd( 'pkill -15 ITGRecv.sh')
+        host.cmd('pkill sshd')
+        host.cmd( 'pkill ITGRecv.sh')
     print "Stopping the network..."
     network.stop()
 
@@ -135,11 +134,12 @@ if __name__ == '__main__':
     try:
         {2}
         {3}
-        net = setupITG(setupNetwork(controller_ip))
+        net = setupNetwork(controller_ip)
     except KeyboardInterrupt:
         print "Interrupted... Exiting..."
         exit(0)
     try:
+        setupITG(net)
         runExp()
     except KeyboardInterrupt:
         cleanup(net)

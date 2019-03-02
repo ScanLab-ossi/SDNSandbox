@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 if [[ -f $GRAPHML ]]
 then
     echo Running experiment with $GRAPHML
