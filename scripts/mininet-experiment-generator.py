@@ -56,15 +56,31 @@ topos = {{ 'generated': ( lambda: GeneratedTopo() ) }}
 
 
 def setupNetwork(controller_ip):
-    "Create network and run simple performance test"
+    "Create network and start it"
     topo = GeneratedTopo()
-    net = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6653 ), link=TCLink)
-    # check if switches connected to controller
-    if not net.waitConnected(timeout=10,delay=1):
-        print "Controller appears to have not connect to switches!"
-        #exit(1)
+    network = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6653 ), link=TCLink)
+    # Start network
+    network.start()
     # adds root for ssh + starts net
-    connectToRootNS(net)
+    connectToRootNS(network)
+
+    # DEBUGGING INFO
+    print
+    print "Dumping network links"
+    dumpNodeConnections(network.hosts)
+    dumpNodeConnections(network.switches)
+    dumpNodeConnections(network.controllers)
+    print
+    print "*** Hosts addresses:"
+    print
+    for host in network.hosts:
+        print host.name, host.IP()
+    print
+
+    print "Waiting for the controller to finish network setup..."
+    countdown(3)
+    print "PingAll to make sure everything's OK"
+    network.pingAllFull()
     return net
 
 def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/8'] ):
@@ -78,8 +94,6 @@ def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/
     root = Node( 'root', inNamespace=False )
     intf = TCLink( root, switch ).intf1
     root.setIP( ip, prefixLen, intf )
-    # Start network that now includes link to root namespace
-    network.start()
     # Add routes from root ns to hosts
     for route in routes:
         root.cmd( 'route add -net ' + route + ' dev ' + str( intf ) )
@@ -99,24 +113,6 @@ def setupITG( network ):
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
         host.cmd( '~/scripts/ITGRecv.sh &' )
-
-    # DEBUGGING INFO
-    print
-    print "Dumping network links"
-    dumpNodeConnections(network.hosts)
-    dumpNodeConnections(network.switches)
-    dumpNodeConnections(network.controllers)
-    print
-    print "*** Hosts addresses:"
-    print
-    for host in network.hosts:
-        print host.name, host.IP()
-    print
-
-    print "Waiting for the controller to finish network setup..."
-    countdown(3)
-    print "PingAll to make sure everything's OK"
-    network.pingAllFull()
     return network
 
 
