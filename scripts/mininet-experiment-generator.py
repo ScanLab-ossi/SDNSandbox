@@ -27,7 +27,7 @@ from mininet.node import Node
 from mininet.link import TCLink
 from mininet.log import setLogLevel
 from mininet.util import dumpNodeConnections
-from subprocess import Popen
+from subprocess import Popen, PIPE, STDOUT
 from os.path import expanduser
 from sys import exit
 import time
@@ -119,8 +119,8 @@ def setupITG( network ):
 def runExp():
     print "Running senders"
     process = Popen(expanduser("~/scripts/run_senders.sh"),
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+                               stdout=PIPE,
+                               stderr=STDOUT)
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
