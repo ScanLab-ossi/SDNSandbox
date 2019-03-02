@@ -45,6 +45,6 @@ sudo service ssh restart
 sudo service openvswitch-switch restart
 
 # run experiment
-sudo EXP_DIR=$EXP_DIR $EXP_PY &> $EXP_DIR/experiment.log
+sudo EXP_DIR=$EXP_DIR $EXP_PY &> tee $EXP_DIR/experiment.log
 
 end

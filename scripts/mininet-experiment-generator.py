@@ -27,7 +27,7 @@ from mininet.node import Node
 from mininet.link import TCLink
 from mininet.log import setLogLevel
 from mininet.util import dumpNodeConnections
-from subprocess import call
+from subprocess import Popen
 from os.path import expanduser
 from sys import exit
 import time
@@ -110,14 +110,25 @@ def countdown(t):
 
 
 def setupITG( network ):
+    print "Adding sshd + ITGRecv to all network hosts" 
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
         host.cmd( '~/scripts/ITGRecv.sh &' )
 
 
 def runExp():
-    code = call(expanduser("~/scripts/run_senders.sh"))
-    if code:
+    print "Running senders"
+    process = Popen(expanduser("~/scripts/run_senders.sh"),
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            print output.strip()
+    rc = process.poll()
+    if rc:
         print "Simulation ended with non zero returncode: " + str(code)
 
 
