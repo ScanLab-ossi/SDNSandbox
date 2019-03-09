@@ -59,17 +59,10 @@ def setupNetwork(controller_ip):
     "Create network and start it"
     topo = GeneratedTopo()
     network = Mininet(topo=topo, controller=lambda a: RemoteController( a, ip=controller_ip, port=6653 ), link=TCLink)
-    # Start network
-    network.start()
     # adds root for ssh + starts net
-    connectToRootNS(network)
+    startNetWithRootNS(network)
 
     # DEBUGGING INFO
-    print
-    print "Dumping network links"
-    dumpNodeConnections(network.hosts)
-    dumpNodeConnections(network.switches)
-    dumpNodeConnections(network.controllers)
     print
     print "*** Hosts addresses:"
     print
@@ -83,7 +76,7 @@ def setupNetwork(controller_ip):
     network.pingAllFull()
     return network
 
-def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/8'] ):
+def startNetWithRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/8'] ):
     "Connect hosts to root namespace via switch. Starts network."
     "network: Mininet() network object"
     "ip: IP address for root namespace node"
@@ -94,6 +87,8 @@ def connectToRootNS( network, ip='10.123.123.1', prefixLen=8, routes=['10.0.0.0/
     root = Node( 'root', inNamespace=False )
     intf = TCLink( root, switch ).intf1
     root.setIP( ip, prefixLen, intf )
+    # Start network that now includes link to root namespace
+    network.start()
     # Add routes from root ns to hosts
     for route in routes:
         root.cmd( 'route add -net ' + route + ' dev ' + str( intf ) )
