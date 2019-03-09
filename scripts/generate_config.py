@@ -19,15 +19,16 @@ periodLengthMilliSeconds = 240*1000
 periodSendLength = 220 * 1000
 periods = expDurationMilliSeconds/periodLengthMilliSeconds
 
-delayRandomness = {}
-delayRandomness["min"] = 0
-delayRandomness["max"] = 20000
+delayRandomness = {
+    "min": 0,
+    "max": 20000
+}
 
 # Packets per Second
-dynamicPPS = {}
-dynamicPPS["min"] = 615 # ~60% of 10 Mbit
-dynamicPPS["max"] = 920 # ~90% of 10Mbit
-
+dynamicPPS = {
+    "min": 615,  # ~60% of 10 Mbit
+    "max": 920  # ~90% of 10Mbit
+}
 defaultPacketSize = 1024
 
 
@@ -44,7 +45,7 @@ def create_command(base, dest, duration, delay, pps, size):
 
 def create_dynamic_loader_commands(hosts):
     commands = []
-    for i in xrange(periods):
+    for i in range(periods):
         delay = i * periodLengthMilliSeconds + random.randrange(delayRandomness["min"],delayRandomness["max"])
         pps = random.randrange(dynamicPPS["min"],dynamicPPS["max"])
         loaded_host = hosts[random.randrange(len(hosts))]
@@ -54,8 +55,8 @@ def create_dynamic_loader_commands(hosts):
 
 
 def create_dynamic_loaders_commands(loaded_host, num_hosts):
-    commands = [[] for _ in xrange(num_hosts)]
-    for h in xrange(num_hosts):
+    commands = [[] for _ in range(num_hosts)]
+    for h in range(num_hosts):
         commands[h].extend(create_dynamic_loader_commands(loaded_host))
     return commands
 
@@ -67,8 +68,7 @@ def write_cmds_to_file(cmds, filename):
         f.write("wait"+os.linesep)
     # give it executable permissions
     st = os.stat(filename)
-    os.chmod(filename, st.st_mode | 0111)
-
+    os.chmod(filename, st.st_mode | 0o0111)
 
 
 def validate_args(args):
@@ -78,9 +78,12 @@ def validate_args(args):
         logging.fatal("Argument specified \"" + args.config_dir + "\" is not a directory!")
         exit(1)
     if not 1 <= args.num_hosts <= 253:
-        logging.fatal("The number of hosts specified \"" + args.num_hosts + \
-              "\" cannot be within one subnet!\nShould be {1..253}!")
+        logging.fatal(
+            """The number of hosts specified \"{0}\" cannot be within one subnet!
+Should be {1..253}!""",
+            args.num_hosts)
         exit(1)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -91,6 +94,7 @@ def parse_args():
     parser.add_argument("--debug", action="store_true", help="Set verbosity to high (debug level)")
     return parser.parse_args()
 
+
 if __name__ == '__main__':
     args = parse_args()
 
@@ -100,7 +104,6 @@ if __name__ == '__main__':
         logging.getLogger().setLevel(logging.INFO)
 
     validate_args(args)
-
 
     last_host = lastHostTemplate + str(args.num_hosts)
     ip_addresses = list(iter_iprange(firstHost, last_host, step=1))
