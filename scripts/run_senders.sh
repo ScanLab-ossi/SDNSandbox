@@ -21,8 +21,9 @@ ip a | sed '/^ / d' - | cut -d: -f1,2 > $EXP_DIR/intfs-list
 # turn on sflow
 ./set_ovs_sflow.sh
 
+CSV_TITLES=`cat csv_titles`
 # start collecting sflow datagrams
-sflowtool -k -j &> $EXP_DIR/sflow-datagrams &
+sflowtool -k -L $CSV_TITLES &> $EXP_DIR/sflow-datagrams &
 
 # run the senders
 HOST_IP_ADDRESSES=`h=1 ; while (( $h <= $HOST_COUNT )) ; do echo 10.0.0.$((h++)) ; done`
