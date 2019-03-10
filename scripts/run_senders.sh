@@ -22,7 +22,7 @@ ip a | sed '/^ / d' - | cut -d: -f1,2 > $EXP_DIR/intfs-list
 ./set_ovs_sflow.sh
 
 # start collecting sflow datagrams
-sflowtool -k -l &> $EXP_DIR/sflow-datagrams &
+sflowtool -k -j &> $EXP_DIR/sflow-datagrams &
 
 # run the senders
 HOST_IP_ADDRESSES=`h=1 ; while (( $h <= $HOST_COUNT )) ; do echo 10.0.0.$((h++)) ; done`
