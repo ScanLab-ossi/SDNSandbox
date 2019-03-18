@@ -23,6 +23,7 @@ function end() {
     sudo mn -c
 
     echo The experiment files can be found in $EXP_DIR
+    echo NOTE: If the experiment was run inside a Docker container, the location depends on the volume mount
 }
 
 # create experiment folder
