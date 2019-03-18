@@ -30,6 +30,8 @@ def parse_arguments():
                         help="Input file listing the interfaces during the experiment")
     parser.add_argument("-t", "--titles", default="csv_titles",
                         help="The input file titles")
+    parser.add_argument("-n", "--normalize-by", default="1000000", type=float,
+                        help="The factor to normalize the input by")
     parser.add_argument("-o", "--output", default="",
                         help="The output file - an HD5 file representing [time,node]=speed")
     parser.add_argument("-k", "--hdf-key", default="sFlow_samples",
@@ -42,7 +44,7 @@ def parse_arguments():
     return args
 
 
-def get_samples_df(sflow_samples_csv):
+def get_samples_df(sflow_samples_csv, normalization_factor):
     samples = pd.read_csv(sflow_samples_csv, header=None, names=titles)
     df = pd.DataFrame()
     last = {}
@@ -62,7 +64,7 @@ def get_samples_df(sflow_samples_csv):
         else:
             new_sampling_cycle = False
         if_index = row[IF_INDEX_KEY]
-        data = row[DATA_KEY]
+        data = row[DATA_KEY] / normalization_factor
         if not first_sampling_cycle:
             logging.debug("first_sampling_cycle=%s, timestamp=%s, if_index=%s, data=%s, last[if_index]=%s",
                           first_sampling_cycle, timestamp, if_index, data, last[if_index])
@@ -105,7 +107,7 @@ if __name__ == '__main__':
                          requiredKeysSet, titles)
         exit(-1)
 
-    df = get_samples_df(args.sflow_csv)
+    df = get_samples_df(args.sflow_csv, args.normalize_by)
 
     links_df = pd.read_csv(args.links_csv, dtype={'From': 'str', 'To': 'str'})
     switch_names_set = set([link[0] for link in links_df.values] + [link[1] for link in links_df.values])
