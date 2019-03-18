@@ -18,6 +18,12 @@ if [ -z "$CONTROLLER" ] ; then
 fi
 
 
+
+if [ -z "$NETWORK" ] ; then
+  NETWORK=Abilene
+fi
+
+
 sudo docker run --privileged -it --rm \
             --mount=type=bind,source=/tmp,destination=/opt \
             --env EXP_DIR=/opt \
@@ -25,4 +31,5 @@ sudo docker run --privileged -it --rm \
             --env CONTROLLER=$CONTROLLER \
             --net $EXP_NET \
             --name experiment \
-            sdnsandbox http://www.topology-zoo.org/files/Abilene.graphml
+            sdnsandbox http://www.topology-zoo.org/files/$NETWORK.graphml
+
