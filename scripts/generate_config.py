@@ -26,8 +26,8 @@ delayRandomness = {
 
 # Packets per Second
 dynamicPPS = {
-    "min": 615,  # ~60% of 10 Mbit
-    "max": 920  # ~90% of 10Mbit
+    "min": 200,  # ~20% of 10 Mbit
+    "max": 600  # ~60% of 10Mbit
 }
 defaultPacketSize = 1024
 
