@@ -126,7 +126,7 @@ if __name__ == '__main__':
     for address in ip_addresses:
         address = str(address)
         logging.info("Creating commands for " + address)
-        loaded_addresses = ip_addresses.copy()
+        loaded_addresses = list(ip_addresses)
         # Remove localhost address
         loaded_addresses.remove(IPAddress(address))
         commands = create_dynamic_loader_commands(loaded_addresses,
