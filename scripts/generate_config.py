@@ -15,8 +15,8 @@ lastHostTemplate = "10.0.0."
 
 # Packets per Second range for Poisson distribution of inter-departure time
 dynamicPPS = {
-    "min": 330,  # ~20% of 10 Mbit for 600 byte mean
-    "max": 1000  # ~60% of 10Mbit for 600 byte mean
+    "min": 100,  # ~8% of 10 Mbit for 600 byte mean
+    "max": 300  # ~20% of 10Mbit for 600 byte mean
 }
 # Based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
 packetSizeMean = 600
