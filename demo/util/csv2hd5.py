@@ -78,18 +78,20 @@ def get_samples_df(sflow_samples_csv, normalization_factor):
     return df
 
 
-def get_irrelevant_switch_num_set(intfs_list_filename, switch_names_set):
-    irrelevant_switch_num_set = set()
+def get_relevant_port_num_to_name_map(intfs_list_filename, switch_names_set):
+    relevant_port_num_to_name_map = {}
     with open(intfs_list_filename) as intfs_list:
         for row in intfs_list:
             if_num, if_name = row.split(': ')
+            # make the num an int
+            if_num = int(if_num)
+            # remove excess whitespace
+            if_name = if_name.strip()
             if_parts = if_name.split('@')
             if len(if_parts) == 2:
-                if not {name.split('-')[0] for name in if_parts}.issubset(switch_names_set):
-                    irrelevant_switch_num_set.add(int(if_num))
-            else:
-                irrelevant_switch_num_set.add(int(if_num))
-    return irrelevant_switch_num_set
+                if {name.split('-')[0] for name in if_parts}.issubset(switch_names_set):
+                    relevant_port_num_to_name_map[if_num] = if_name
+    return relevant_port_num_to_name_map
 
 
 if __name__ == '__main__':
@@ -113,11 +115,13 @@ if __name__ == '__main__':
     links_df = pd.read_csv(args.links_csv, dtype={'From': 'str', 'To': 'str'})
     switch_names_set = set([link[0] for link in links_df.values] + [link[1] for link in links_df.values])
 
-    irrelevant_switch_num_set = get_irrelevant_switch_num_set(args.intfs_list, switch_names_set)
+    relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_names_set)
 
-    switch_drop_list = list(filter(lambda k: k in irrelevant_switch_num_set, df.T.keys()))
+    port_drop_list = list(filter(lambda k: k not in relevant_port_num_to_name_map.keys(), df.T.keys()))
 
-    df = df.drop(labels=switch_drop_list)
+    df = df.drop(labels=port_drop_list)
+
+    df.rename(relevant_port_num_to_name_map, inplace=True)
 
     df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
 
