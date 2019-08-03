@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 import pandas as pd
+import numpy as np
 
 DATA_KEY = 'ifInOctets'
 
@@ -45,7 +46,7 @@ def parse_arguments():
 
 
 def get_samples_df(sflow_samples_csv, normalization_factor):
-    samples = pd.read_csv(sflow_samples_csv, header=None, names=titles)
+    samples = pd.read_csv(sflow_samples_csv, dtype=np.uint64, header=None, names=titles)
     df = pd.DataFrame()
     last = {}
     first_sampling_cycle = True
