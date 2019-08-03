@@ -46,9 +46,9 @@ def create_dynamic_loader_commands(hosts, protocol, periods, period_length_milli
     commands = []
     pps = random.randrange(dynamicPPS["min"], dynamicPPS["max"])
     diff = set_diff(pps, diff_abs)
-    for i in range(periods):
+    for _ in range(periods):
         delay_secs = period_length_milliseconds / 1000
-        loaded_host = hosts[i % len(hosts)]
+        loaded_host = hosts[random.randrange(len(hosts))]
         cmd = create_command(baseCommand,
                              loaded_host,
                              protocol,
