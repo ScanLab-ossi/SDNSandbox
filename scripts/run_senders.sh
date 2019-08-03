@@ -32,7 +32,7 @@ SSH_PROCS=""
 for host_addr in $HOST_IP_ADDRESSES ; do
 	HOST_CONF=$CONF_BASE/config-$host_addr
 
-	ssh $host_addr -o StrictHostKeyChecking=false $HOST_CONF > /dev/null &
+	ssh $host_addr -o StrictHostKeyChecking=false $HOST_CONF &> $EXP_DIR/sender-$host_addr.log &
 	SSH_PROCS="$SSH_PROCS $!"
 done
 
