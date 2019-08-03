@@ -108,7 +108,7 @@ def setupITG( network ):
     print "Adding sshd + ITGRecv to all network hosts" 
     for host in network.hosts:
         host.cmd( '/usr/sbin/sshd -D &')
-        host.cmd( '~/scripts/ITGRecv.sh &' )
+        host.cmd( '~/scripts/ITGRecv.sh ' + host.IP() + '  &' )
 
 
 def runExp():
