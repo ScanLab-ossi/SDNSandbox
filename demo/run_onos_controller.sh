@@ -23,7 +23,12 @@ if [ -z "$EXP_NET" ] ; then
   exit_with_msg "The variable EXP_NET must be set to the name of the docker network to be used in the experiment!"
 fi
 
-CONTROLLER_NAME=controller
+if [ -z "$CONTROLLER" ] ; then
+  DEFAULT=controller
+  echo Environment variable CONTROLLER was not defined - falling back to default name = $DEFAULT
+  CONTROLLER_NAME=$DEFAULT
+fi
+
 CONTROLLER_REMOVE_CMD="sudo docker rm -f $CONTROLLER_NAME"
 
 FOUND=0
