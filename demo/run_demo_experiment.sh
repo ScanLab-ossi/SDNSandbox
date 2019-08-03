@@ -17,8 +17,6 @@ if [ -z "$CONTROLLER" ] ; then
   exit_with_msg "The variable CONTROLLER must be set to the DNS name of the controller docker container to be used in the experiment!"
 fi
 
-
-
 if [ -z "$NETWORK" ] ; then
   NETWORK=Abilene
 fi
