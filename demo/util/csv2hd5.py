@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-# GraphML-Topo-to-CSV
-# This file parses Network Topologies in GraphML format from the Internet Topology Zoo.
-# A CSV file describing the Topology will be created as Output.
+# csv2hd5
+# This script will transform the CSV sFlow output to
+# a more dense and self describing HD5 file format.
 #
 #################################################################################
 import argparse
