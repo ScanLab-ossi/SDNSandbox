@@ -5,7 +5,9 @@ import random
 import os
 from netaddr import iter_iprange, IPAddress
 
-baseCommand = "sleep %d ; ITGSend"
+baseCommand = "timeout %s ITGSend"
+
+graceSeconds = 3
 
 # IPs
 firstHost = "10.0.0.1"
@@ -22,13 +24,21 @@ packetSizeStdDev = 100
 
 
 def create_command(base, dest, protocol, duration, delay_secs, pps, packet_size_mean, packet_size_std_dev):
-    cmd = base % delay_secs
-    cmd += " -a %s" % dest
-    cmd += " -T %s" % protocol
-    cmd += " -t %s" % duration
-    cmd += " -O %s" % pps
-    cmd += " -n %s %s" % (packet_size_mean, packet_size_std_dev)
-    cmd += " < /dev/null &"
+    cmd_base = base % (duration / 1000 + graceSeconds)
+    cmd_base += " -a %s" % dest
+    cmd_base += " -T %s" % protocol
+    cmd_base += " -t %s" % duration
+    cmd_base += " -O %s" % pps
+    cmd_base += " -n %s %s" % (packet_size_mean, packet_size_std_dev)
+    cmd_base += " -l /dev/null"
+    cmd = """
+if ! %s ; then
+    echo ITGSend failed... Trying again in 3 secs!
+    sleep 3
+    if ! %s ; then
+        echo ITGSend to %s failed, skipping this command!
+    fi
+fi""" % (cmd_base, cmd_base, dest)
     return cmd
 
 
