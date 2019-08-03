@@ -29,6 +29,7 @@ RUN \
     mininet \
     openvswitch-switch \
     d-itg \
+    netcat \
 # Clean up packages.
     && apt-get clean \
 
