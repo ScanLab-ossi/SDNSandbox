@@ -23,5 +23,6 @@ ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 for NETWORK in `cat $ROOT_DIR/ISP_list.txt` ; do
   echo Running experiment for: $NETWORK
+  export NETWORK
   "$ROOT_DIR"/run_experiment.sh
 done
