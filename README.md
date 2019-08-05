@@ -12,7 +12,7 @@ We will tag our docker image with the "sdnsandbox" tag
 ## Environment preparations
 The following stages can be run using the following helper script:
 
-`./demo/prepare_demo_environment.sh`
+`./demo/prepare_environment.sh`
 
 The preparation stages need to happen before running the actual experiment.
 We split them to a separate script as they can be run once for many experiment executions.
@@ -35,7 +35,7 @@ This is done so the experiment + controller communicate with each other.
 ## Running The Experiment Container
 This can be run using the demo command:
 
-`./demo/run_demo_experiment.sh`
+`./demo/run_experiment.sh`
         
 * CONTROLLER is set to the relevant controller DNS name
 * The script assumes NETWORK is set to the network name to be used from the ITZ (Internet Topology Zoo) -

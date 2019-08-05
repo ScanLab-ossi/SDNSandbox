@@ -8,5 +8,5 @@ sudo docker network create $EXP_NET
 
 export CONTROLLER=controller
 
-./demo/run_onos_controller.sh
+`dirname ${BASH_SOURCE[0]}`/run_onos_controller.sh
 
