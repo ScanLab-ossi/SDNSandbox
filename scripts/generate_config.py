@@ -13,23 +13,37 @@ graceSeconds = 3
 firstHost = "10.0.0.1"
 lastHostTemplate = "10.0.0."
 
-# Packets per Second range for Poisson distribution of inter-departure time
-dynamicPPS = {
-    "min": 100,  # ~8% of 10 Mbit for 600 byte mean
-    "max": 300  # ~20% of 10Mbit for 600 byte mean
-}
-# Based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
-packetSizeMean = 600
-packetSizeStdDev = 100
+
+def return_imix_packet_options():
+    # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
+    variant_packet_size_mean = 576
+    variant_packet_size_std_dev = 190  # makes 3-sigma between 50-1400 packet sizes be 99,7%
+    constant_packet_size = 1500
+
+    constant_pps = 250
+
+    randomly = random.randint(1, 100)
+    # The split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
+    # Therefore the normally distributed portion is:
+    # 100 - (100 * 15 / (15 + 55)) = 78
+    if 1 <= randomly < 78:
+        # Normal Distribution for packet sizes
+        opts = " -n %s %s" % (variant_packet_size_mean, variant_packet_size_std_dev)
+    else:
+        # Constant packet size
+        opts = " -c %s" % constant_packet_size
+
+    # Maxes at 3Mbps for 1500B packets - assumes we are using a 10Mbps line to insert load
+    opts += " -C %s" % constant_pps
+    return opts
 
 
-def create_command(base, dest, protocol, duration, delay_secs, pps, packet_size_mean, packet_size_std_dev):
-    cmd_base = base % (duration / 1000 + graceSeconds)
-    cmd_base += " -a %s" % dest
+def create_command(base, destination, protocol, duration):
+    cmd_base = base % int(duration / 1000 + graceSeconds)
+    cmd_base += " -a %s" % destination
     cmd_base += " -T %s" % protocol
     cmd_base += " -t %s" % duration
-    cmd_base += " -O %s" % pps
-    cmd_base += " -n %s %s" % (packet_size_mean, packet_size_std_dev)
+    cmd_base += return_imix_packet_options()
     cmd_base += " -l /dev/null"
     cmd = """
 if ! %s ; then
@@ -38,37 +52,20 @@ if ! %s ; then
     if ! %s ; then
         echo ITGSend to %s failed, skipping this command!
     fi
-fi""" % (cmd_base, cmd_base, dest)
+fi""" % (cmd_base, cmd_base, destination)
     return cmd
 
 
-def create_dynamic_loader_commands(hosts, protocol, periods, period_length_milliseconds, diff_abs):
+def create_dynamic_load_commands(hosts, protocol, periods, period_length_milliseconds):
     commands = []
-    pps = random.randrange(dynamicPPS["min"], dynamicPPS["max"])
-    diff = set_diff(pps, diff_abs)
     for _ in range(periods):
-        delay_secs = period_length_milliseconds / 1000
         loaded_host = hosts[random.randrange(len(hosts))]
         cmd = create_command(baseCommand,
                              loaded_host,
                              protocol,
-                             period_length_milliseconds,
-                             delay_secs,
-                             pps,
-                             packetSizeMean, packetSizeStdDev)
+                             period_length_milliseconds)
         commands.append(cmd)
-        pps += diff
-        if pps < dynamicPPS["min"] or pps > dynamicPPS["max"]:
-            diff = -diff
-            pps += 2*diff
     return commands
-
-
-def set_diff(pps, diff_abs):
-    if (pps - dynamicPPS["min"]) / (dynamicPPS["max"] - dynamicPPS["min"]) > 0.5:
-        return diff_abs
-    else:
-        return -diff_abs
 
 
 def write_commands_to_file(commands, filename):
@@ -109,8 +106,6 @@ def parse_args():
                         help="The number of experiment periods in the configuration files")
     parser.add_argument("-l", "--period-length", type=int, default=100000,
                         help="The length of an experiment period in milliseconds")
-    parser.add_argument("-a", "--absolute-pps-difference", type=int, default=10,
-                        help="The amount to increase/decrease the pps by per period")
     parser.add_argument("--debug", action="store_true", help="Set verbosity to high (debug level)")
     return parser.parse_args()
 
@@ -139,12 +134,11 @@ if __name__ == '__main__':
         loaded_addresses = list(ip_addresses)
         # Remove localhost address
         loaded_addresses.remove(IPAddress(address))
-        commands = create_dynamic_loader_commands(loaded_addresses,
-                                                  args.protocol,
-                                                  args.periods,
-                                                  args.period_length,
-                                                  args.absolute_pps_difference)
-        logging.debug(commands)
-        write_commands_to_file(commands, args.config_dir + "/config-" + address)
+        load_generating_commands = create_dynamic_load_commands(loaded_addresses,
+                                                                args.protocol,
+                                                                args.periods,
+                                                                args.period_length)
+        logging.debug(load_generating_commands)
+        write_commands_to_file(load_generating_commands, args.config_dir + "/config-" + address)
 
     logging.info("Done generating host config files!")
