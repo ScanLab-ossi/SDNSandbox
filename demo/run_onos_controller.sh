@@ -45,7 +45,12 @@ fi
 
 
 # Run controller docker container as "controller" with exposed ports
-sudo docker run --net $EXP_NET --name $CONTROLLER_NAME --rm -d  -p 6653:6653 -p 8101:8101 -p 8181:8181 -p 9876:9876 onosproject/onos
+sudo docker run \
+    --net $EXP_NET \
+    --name $CONTROLLER_NAME \
+    --rm -d \
+    -p 6653:6653 -p 8101:8101 -p 8181:8181 -p 9876:9876 \
+    onosproject/onos:1.13.9
 
 CONTROLLER_API=localhost:8181/onos/v1
 
