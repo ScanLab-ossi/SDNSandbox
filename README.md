@@ -12,10 +12,11 @@ We will tag our docker image with the "sdnsandbox" tag
 ## Environment preparations
 The following stages can be run using the following helper script:
 
-`./demo/prepare_environment.sh`
+`. ./demo/prepare_environment.sh`
 
 The preparation stages need to happen before running the actual experiment.
 We split them to a separate script as they can be run once for many experiment executions.
+As the script exports environment variables to be used later it needs to be used with the source or "." operand.
 ### Creating a docker network
 This is done so the experiment + controller communicate with each other.
 `export EXP_NET=sdn-net`
