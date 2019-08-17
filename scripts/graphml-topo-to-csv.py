@@ -158,6 +158,7 @@ if __name__ == '__main__':
 
     links = get_switch_links(edge_set, id_node_dict)
 
+    print("Writing to " + args.output)
     with open(args.output, 'w', newline='') as f:
         csv_writer = csv.DictWriter(f, Link._fields)
         csv_writer.writeheader()
