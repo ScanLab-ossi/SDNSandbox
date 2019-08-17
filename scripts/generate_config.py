@@ -102,9 +102,9 @@ def parse_args():
                         help="The transmission protocol to be used")
     parser.add_argument("-n", "--num-hosts", type=int, required=True,
                         help="The number of hosts to generate configuration files for")
-    parser.add_argument("-p", "--periods", type=int, default=2160,
+    parser.add_argument("-p", "--periods", type=int, default=360,
                         help="The number of experiment periods in the configuration files")
-    parser.add_argument("-l", "--period-length", type=int, default=5000,
+    parser.add_argument("-l", "--period-length", type=int, default=30000,
                         help="The length of an experiment period in milliseconds")
     parser.add_argument("--debug", action="store_true", help="Set verbosity to high (debug level)")
     return parser.parse_args()
