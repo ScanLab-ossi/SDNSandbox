@@ -12,7 +12,7 @@ import csv
 from collections import namedtuple
 
 Node = namedtuple('Node', 'Name, Latitude, Longitude')
-Link = namedtuple('Link', 'From, To, Latency_in_ms')
+Link = namedtuple('Link', 'From_ID, From_Name, To_ID, To_Name, Latency_in_ms')
 
 
 def parse_arguments():
@@ -73,8 +73,6 @@ def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xm
             if d.attrib['key'] == node_label_name:
                 # strip all whitespace from names so they can be used as id's
                 node_name_value = remove_bad_chars(d.text)
-                # Make name 4 letter long to use as switch name
-                node_name_value = node_name_value[:4]
             # longitude data
             if d.attrib['key'] == node_longitude_name:
                 node_longitude_value = d.text
@@ -143,9 +141,9 @@ def get_switch_links(edges, nodes):
                                     nodes[dst_id].Latitude,
                                     nodes[src_id].Longitude,
                                     nodes[dst_id].Longitude)
-        name_src = nodes[src_id].Name
-        name_dst = nodes[dst_id].Name
-        switch_links.append(Link(name_src, name_dst, latency))
+        src_name = nodes[src_id].Name
+        dst_name = nodes[dst_id].Name
+        switch_links.append(Link(src_id, src_name, dst_id, dst_name, latency))
     return switch_links
 
 

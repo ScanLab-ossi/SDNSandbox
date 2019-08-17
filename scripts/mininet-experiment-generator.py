@@ -13,7 +13,7 @@ import argparse
 from csv import DictReader
 from collections import namedtuple
 
-Link = namedtuple('Link', 'From, To, Latency_in_ms')
+Link = namedtuple('Link', 'From_ID, From_Name, To_ID, To_Name, Latency_in_ms')
 
 output_code = r'''#!/usr/bin/python
 
@@ -170,35 +170,24 @@ def parse_arguments():
     return args
 
 
-def int2dpid(dpid):
-    try:
-        dpid = hex(dpid)[2:]
-        dpid = '0' * ( 16 - len( dpid ) ) + dpid
-        return dpid
-    except IndexError:
-        raise Exception('Unable to derive default datapath ID - '
-                        'please either specify a dpid or use a '
-                        'canonical switch name such as s23.' )
-
-
 def add_switches_with_linked_host(switches, bandwidth):
     output = ''
     for s in range(0, len(switches)):
-        name = switches.pop()
+        switch_id = switches.pop()
         # create switch
-        output += "        {0} = self.addSwitch('{0}', dpid='{1}')\n".format(name, int2dpid(s))
+        output += "        s{0} = self.addSwitch('s{0}')\n".format(switch_id)
         # create corresponding host
-        output += "        {0}_host = self.addHost('{0}-H')\n".format(name)
+        output += "        s{0}_host = self.addHost('s{0}-H')\n".format(switch_id)
         # link each switch and its host...
-        output += "        self.addLink({0}, {0}_host, bw={1})\n".format(name, bandwidth)
+        output += "        self.addLink(s{0}, s{0}_host, bw={1})\n".format(switch_id, bandwidth)
     return output
 
 
 def add_switch_links(edges, bandwidth):
     switch_links = ""
     for e in edges:
-        switch_links += "        self.addLink({0}, {1}, bw={2}, delay='{3}ms')\n".format(
-            e.From, e.To, bandwidth, e.Latency_in_ms)
+        switch_links += "        self.addLink(s{0}, s{1}, bw={2}, delay='{3}ms')\n".format(
+            e.From_ID, e.To_ID, bandwidth, e.Latency_in_ms)
     return switch_links
 
 
@@ -216,7 +205,7 @@ if __name__ == '__main__':
         for link in csv_reader:
             links.append(Link(**link))
 
-    switches = set([link.From for link in links] + [link.To for link in links])
+    switches = set([link.From_ID for link in links] + [link.To_ID for link in links])
 
     add_switches_with_linked_host_output = add_switches_with_linked_host(switches, args.host_bandwidth)
 
