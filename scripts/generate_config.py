@@ -14,25 +14,36 @@ firstHost = "10.0.0.1"
 lastHostTemplate = "10.0.0."
 
 
-def return_imix_packet_options():
+def return_imix_packet_options(tcp=True):
     # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
+    low_constant_packet_size = 40
     variant_packet_size_mean = 576
     variant_packet_size_std_dev = 190  # makes 3-sigma between 50-1400 packet sizes be 99,7%
-    constant_packet_size = 1500
+    high_constant_packet_size = 1500
 
     constant_pps = 250
 
     randomly = random.randint(1, 100)
     # The split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
-    # Therefore the normally distributed portion is:
-    # 100 - (100 * 15 / (15 + 55)) = 78
-    if 1 <= randomly < 78:
-        # Normal Distribution for packet sizes
-        opts = " -n %s %s" % (variant_packet_size_mean, variant_packet_size_std_dev)
+    if tcp:
+        # Therefore the normally distributed portion is:
+        # 100 - (100 * 15 / (15 + 55)) = 78
+        if 1 <= randomly < 78:
+            # Normal Distribution for packet sizes
+            opts = " -n %s %s" % (variant_packet_size_mean, variant_packet_size_std_dev)
+        else:
+            # Constant packet size
+            opts = " -c %s" % high_constant_packet_size
     else:
-        # Constant packet size
-        opts = " -c %s" % constant_packet_size
-
+        if 1 <= randomly < 30:
+            # Constant packet size
+            opts = " -c %s" % low_constant_packet_size
+        elif 30 <= randomly < 85:
+            # Normal Distribution for packet sizes
+            opts = " -n %s %s" % (variant_packet_size_mean, variant_packet_size_std_dev)
+        else:
+            # Constant packet size
+            opts = " -c %s" % high_constant_packet_size
     # Maxes at 3Mbps for 1500B packets - assumes we are using a 10Mbps line to insert load
     opts += " -C %s" % constant_pps
     return opts
@@ -43,7 +54,7 @@ def create_command(base, destination, protocol, duration):
     cmd_base += " -a %s" % destination
     cmd_base += " -T %s" % protocol
     cmd_base += " -t %s" % duration
-    cmd_base += return_imix_packet_options()
+    cmd_base += return_imix_packet_options(protocol == 'TCP')
     cmd_base += " -l /dev/null"
     cmd = """
 if ! %s ; then
@@ -98,7 +109,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--config-dir", required=True,
                         help="The configuration file directory (where the config files will be written to)")
-    parser.add_argument("--protocol", default="TCP",
+    parser.add_argument("--protocol", default="UDP",
                         help="The transmission protocol to be used")
     parser.add_argument("-n", "--num-hosts", type=int, required=True,
                         help="The number of hosts to generate configuration files for")
