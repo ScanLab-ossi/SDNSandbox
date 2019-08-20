@@ -10,6 +10,7 @@ import math
 import argparse
 import csv
 from collections import namedtuple
+import logging
 
 Node = namedtuple('Node', 'Name, Latitude, Longitude')
 Link = namedtuple('Link', 'From_ID, From_Name, To_ID, To_Name, Latency_in_ms')
@@ -20,6 +21,7 @@ def parse_arguments():
     parser.add_argument("-i", "--input", required=True, help="The input file - a graphml topology file")
     parser.add_argument("-o", "--output", default="",
                         help="The output file - a CSV file based on the topology - To, From, Latency(ms)")
+    parser.add_argument("-d", "--debug", action="store_true", help="Set verbosity to high (debug level)")
     args = parser.parse_args()
     if args.output == "":
         args.output = args.input + '.csv'
@@ -79,7 +81,12 @@ def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xm
             # latitude data
             if d.attrib['key'] == node_latitude_name:
                 node_latitude_value = d.text
-            id_node_map[node_index_value] = Node(node_name_value, node_longitude_value, node_latitude_value)
+        if node_name_value == 'None':
+            logging.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
+            continue
+        id_node_map[node_index_value] = Node(node_name_value, node_longitude_value, node_latitude_value)
+        logging.debug("Added for index=%s Node=%s", node_index_value, id_node_map[node_index_value])
+    logging.info("Found a total of %d nodes", len(id_node_map))
     return id_node_map
 
 
@@ -118,6 +125,9 @@ def calculate_latency(latitude_src_str, latitude_dst_str, longitude_src_str, lon
     #    t = distance / speed of light
     #    t (in ms) = ( distance in km * 1000 (for meters) ) / ( speed of light / 1000 (for ms))
     #    ACTUAL CALCULATION: implementing this was no fun.
+    logging.debug("Calculating with src_lat=%s src_lon=%s dst_lat=%s dst_lon=%s",
+                  latitude_src_str, longitude_src_str,
+                  latitude_dst_str, longitude_dst_str)
     latitude_src = math.radians(float(latitude_src_str))
     latitude_dst = math.radians(float(latitude_dst_str))
     longitude_src = math.radians(float(longitude_src_str))
@@ -137,6 +147,9 @@ def get_switch_links(edges, nodes):
         # GET IDS FOR EASIER HANDLING
         src_id = e.attrib['source']
         dst_id = e.attrib['target']
+        if not set([src_id, dst_id]).issubset(nodes.keys()):
+            logging.debug("Missing edge node id in valid node list - skipping Edge=%s", e.attrib)
+            continue
         latency = calculate_latency(nodes[src_id].Latitude,
                                     nodes[dst_id].Latitude,
                                     nodes[src_id].Longitude,
@@ -150,17 +163,22 @@ def get_switch_links(edges, nodes):
 if __name__ == '__main__':
     args = parse_arguments()
 
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
     edge_set, node_set, index_values_set = get_graph_sets_from_xml(args.input)
 
     id_node_dict = get_id_node_map(node_set, index_values_set)
 
     links = get_switch_links(edge_set, id_node_dict)
 
-    print("Writing to " + args.output)
+    logging.info("Writing to " + args.output)
     with open(args.output, 'w', newline='') as f:
         csv_writer = csv.DictWriter(f, Link._fields)
         csv_writer.writeheader()
         for link in links:
             csv_writer.writerow(link._asdict())
 
-    print("Topology CSV generation SUCCESSFUL!")
+    logging.info("Topology CSV generation SUCCESSFUL!")
