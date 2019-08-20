@@ -84,6 +84,9 @@ def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xm
         if node_name_value == 'None':
             logging.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
             continue
+        if '' in [node_name_value, node_latitude_value, node_longitude_value]:
+            logging.debug("Found empty string as node value (name/lat/long) for index=%s - invalidating and skipping")
+            continue
         id_node_map[node_index_value] = Node(node_name_value, node_longitude_value, node_latitude_value)
         logging.debug("Added for index=%s Node=%s", node_index_value, id_node_map[node_index_value])
     logging.info("Found a total of %d nodes", len(id_node_map))
