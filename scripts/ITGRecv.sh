@@ -10,7 +10,7 @@ do
 	echo_this "-------------------------------"
 	echo_this "Starting ITGRecv"
 
-	ITGRecv -l /dev/null &>> "$LOG_NAME"  < /dev/null
+	echo_this `ITGRecv`
 
 	echo_this "ITGRecv has stopped!"
 	sleep 1
