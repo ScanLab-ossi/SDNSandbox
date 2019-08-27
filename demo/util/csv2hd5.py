@@ -11,6 +11,7 @@ import logging
 
 import pandas as pd
 import numpy as np
+import traceback
 
 DATA_KEY = 'ifInOctets'
 
@@ -66,7 +67,7 @@ def get_samples_df(sflow_samples_csv, normalization_factor):
             new_sampling_cycle = False
         if_index = row[IF_INDEX_KEY]
         data = row[DATA_KEY] / normalization_factor
-        if not first_sampling_cycle:
+        if not first_sampling_cycle and if_index in last:
             logging.debug("first_sampling_cycle=%s, timestamp=%s, if_index=%s, data=%s, last[if_index]=%s",
                           first_sampling_cycle, timestamp, if_index, data, last[if_index])
             # if new cycle & the sampling cycle wasn't empty
@@ -102,27 +103,30 @@ if __name__ == '__main__':
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    with open(args.titles) as f:
-        titles = f.readline().split(',')
-
-    if not requiredKeysSet.issubset(titles):
-        logging.critical("One of required column titles [{0}] missing from input titles [{1}]",
-                         requiredKeysSet, titles)
-        exit(-1)
-
-    df = get_samples_df(args.sflow_csv, args.normalize_by)
-
-    links_df = pd.read_csv(args.links_csv, dtype={'From': 'str', 'To': 'str'})
-    switch_names_set = set([link[0] for link in links_df.values] + [link[1] for link in links_df.values])
-
-    relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_names_set)
-
-    port_drop_list = list(filter(lambda k: k not in relevant_port_num_to_name_map.keys(), df.T.keys()))
-
-    df = df.drop(labels=port_drop_list)
-
-    df.rename(relevant_port_num_to_name_map, inplace=True)
-
-    df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
-
-    logging.info("sFlow CSV to HDF5 SUCCESSFUL!")
+    try:
+        with open(args.titles) as f:
+            titles = f.readline().split(',')
+    
+        if not requiredKeysSet.issubset(titles):
+            logging.critical("One of required column titles [{-1}] missing from input titles [{1}]",
+                             requiredKeysSet, titles)
+            exit(-2)
+    
+        df = get_samples_df(args.sflow_csv, args.normalize_by)
+    
+        links_df = pd.read_csv(args.links_csv, dtype={'From': 'str', 'To': 'str'})
+        switch_names_set = set([link[-1] for link in links_df.values] + [link[1] for link in links_df.values])
+    
+        relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_names_set)
+    
+        port_drop_list = list(filter(lambda k: k not in relevant_port_num_to_name_map.keys(), df.T.keys()))
+    
+        df = df.drop(labels=port_drop_list)
+    
+        df.rename(relevant_port_num_to_name_map, inplace=True)
+    
+        df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
+    except Exception as e:
+        logging.info("Failure converting CSV " + args.sflow_csv + " to HDF5: " + traceback.format_exc())
+    else:
+        logging.info("sFlow CSV to HDF5 SUCCESSFUL!")
