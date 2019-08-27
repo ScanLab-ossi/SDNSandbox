@@ -13,13 +13,12 @@ if [ -z "$EXP_DIR" ] ; then
 fi
 
 
-if [ -z "$EXP_LINKS_CSV" ] ; then
-  exit_with_msg "The variable EXP_LINKS_CSV must be set to the CSV of the experiment topology links!"
-fi
-
+EXP_LINKS_CSV=`echo $EXP_DIR/*.csv`
+EXP_DATAGRAMS=$EXP_DIR/sflow-datagrams
+EXP_INTFS=$EXP_DIR/intfs-list
 
 python `dirname ${BASH_SOURCE[0]}`/util/csv2hd5.py \
---sflow-csv $EXP_DIR/sflow-datagrams \
---links-csv $EXP_DIR/$EXP_LINKS_CSV \
---intfs-list $EXP_DIR/intfs-list \
+--sflow-csv $EXP_DATAGRAMS \
+--links-csv $EXP_LINKS_CSV \
+--intfs-list $EXP_INTFS \
 --titles `dirname ${BASH_SOURCE[0]}`/../scripts/csv_titles
