@@ -6,12 +6,15 @@
 #
 #################################################################################
 import argparse
+from collections import namedtuple
 from datetime import datetime
 import logging
 
 import pandas as pd
 import numpy as np
 import traceback
+
+Link = namedtuple('Link', 'From_ID, From_Name, To_ID, To_Name, Latency_in_ms')
 
 DATA_KEY = 'ifInOctets'
 
@@ -79,8 +82,8 @@ def get_samples_df(sflow_samples_csv, normalization_factor):
     return df
 
 
-def get_relevant_port_num_to_name_map(intfs_list_filename, switch_names_set):
-    relevant_port_num_to_name_map = {}
+def get_relevant_port_num_to_name_map(intfs_list_filename, switch_ids_set):
+    port_num_to_name_map = {}
     with open(intfs_list_filename) as intfs_list:
         for row in intfs_list:
             if_num, if_name = row.split(': ')
@@ -89,10 +92,14 @@ def get_relevant_port_num_to_name_map(intfs_list_filename, switch_names_set):
             # remove excess whitespace
             if_name = if_name.strip()
             if_parts = if_name.split('@')
+            logging.debug("found interface: \n%s", if_parts)
             if len(if_parts) == 2:
-                if {name.split('-')[0] for name in if_parts}.issubset(switch_names_set):
-                    relevant_port_num_to_name_map[if_num] = if_name
-    return relevant_port_num_to_name_map
+                if_switch_ids = {name.split('-')[0][1:] for name in if_parts}
+                logging.debug("found if_switch_ids: \n%s", if_switch_ids)
+                if if_switch_ids.issubset(switch_ids_set):
+                    # interface names listed will be in format s<switch-id>-<port-in-switch> twice with @ as delimiter
+                    port_num_to_name_map[if_num] = if_name
+    return port_num_to_name_map
 
 
 if __name__ == '__main__':
@@ -112,21 +119,33 @@ if __name__ == '__main__':
                              requiredKeysSet, titles)
             exit(-2)
     
+        links_df = pd.read_csv(args.links_csv,
+                               dtype={'From_ID': 'str',
+                                      'From_Name': 'str',
+                                      'To_ID': 'str',
+                                      'To_Name': 'str',
+                                      'Latency_in_ms': 'float'})
+        logging.info("Links found: \n%s", links_df)
+
+        switch_ids_set = set([Link(*link).From_ID for link in links_df.values] + [Link(*link).To_ID for link in links_df.values])
+        logging.info("Switches found: \n%s", switch_ids_set)
+
+        relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_ids_set)
+        logging.info("Relevant ports found: \n%s", relevant_port_num_to_name_map)
+
         df = get_samples_df(args.sflow_csv, args.normalize_by)
-    
-        links_df = pd.read_csv(args.links_csv, dtype={'From': 'str', 'To': 'str'})
-        switch_names_set = set([link[-1] for link in links_df.values] + [link[1] for link in links_df.values])
-    
-        relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_names_set)
-    
+        logging.info('CSV dataframe:\n%s', df)
         port_drop_list = list(filter(lambda k: k not in relevant_port_num_to_name_map.keys(), df.T.keys()))
-    
+
+        logging.info("dropping the following irrelevant ports from dataframe:\n%s", port_drop_list)
         df = df.drop(labels=port_drop_list)
+        logging.debug('CSV dataframe after drop:\n%s', df)
     
         df.rename(relevant_port_num_to_name_map, inplace=True)
-    
+        logging.debug('CSV dataframe after drop after rename:\n%s', df)
+
         df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
     except Exception as e:
         logging.info("Failure converting CSV " + args.sflow_csv + " to HDF5: " + traceback.format_exc())
     else:
-        logging.info("sFlow CSV to HDF5 SUCCESSFUL!")
+        logging.info("sFlow CSV " + args.sflow_csv + " to HDF5 SUCCESSFUL!")
