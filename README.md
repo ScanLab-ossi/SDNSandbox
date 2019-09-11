@@ -34,6 +34,7 @@ This is done so the experiment + controller communicate with each other.
 * In order to delete a previously running controller add the ALWAYS_RM=TRUE env-var.
 
 ## Running The Experiment Container
+### Single Experiment
 This can be run using the demo command:
 
 `./demo/run_experiment.sh`
@@ -45,10 +46,19 @@ requires internet connectivity to fetch the relevant GraphML file
     * You can currently change the way the GraphML file is loaded only by editing the relevant code
 * The environment preparation script will define the following
     * EXP_NET=sdn-net
-    * export EXP_DATA_PATH=/data/
+    * EXP_DATA_PATH=/data/
     * CONTROLLER=controller 
 * At the end of the experiment the log will state the full path of the experiment files
 (generated config files, logs, gathered samples etc.)
+
+### Multiple Experiments
+If you want to run experiments on multiple networks, we provide anouther helper script:
+
+`./demo/run_list_of_experiments.sh`
+
+The environment is expected to be the same as in the single experiment example except for the NETWORK variable.
+
+In order to select the ITZ networks to be used for the experiments you can change the file "./demo/ISP_list.txt".
 ## Transforming samples to HD5
 In order to analyze the samples, it is easier to use the HD5 file format.
 
@@ -57,3 +67,10 @@ To do that we have another helper script to use:
 EXP_DIR=<the folder with the experiment files>
 EXP_LINKS_CSV=<name of the topology csv created during the experiment>
 ./demo/prepare_experiment_output_for_analysis.sh
+```
+
+## Troubleshooting
+* Make sure all hosts in the experiment were found
+    - If "ssh: connect to host _IP_ port 22: No route to host" is seen in the
+    sender log file ("sender-_IP_.log") the sender has failed to start because
+    of a failed connection and you should rerun the experiment.
