@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # calc_hd5_iqr.py
 # This script will calculate an HD5 file's IQR (interquartile range).
