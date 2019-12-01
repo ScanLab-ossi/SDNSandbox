@@ -49,6 +49,13 @@ if __name__ == '__main__':
                             'description': 'IQR for all readings'}
     logging.info(results['total_iqr']['description'] + " is " + str(results['total_iqr']['result']))
 
+    total_iqr_nan_omitted = iqr(total_values, nan_policy='omit')
+    results['total_iqr_nan_omitted'] = {'result': total_iqr,
+                                        'instances_for_calc': total_values.size - sum(df.isnull().sum()),
+                                        'description': 'IQR for all readings except NaN'}
+    logging.info(results['total_iqr_nan_omitted']['description'] + " is " +
+                 str(results['total_iqr_nan_omitted']['result']))
+
     df_t_mean = df.T.mean()
     df_t_iqr = iqr(df_t_mean)
     results['second_means_iqr'] = {'result': df_t_iqr,
