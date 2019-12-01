@@ -22,3 +22,6 @@ python `dirname ${BASH_SOURCE[0]}`/util/csv2hd5.py \
 --links-csv $EXP_LINKS_CSV \
 --intfs-list $EXP_INTFS \
 --titles `dirname ${BASH_SOURCE[0]}`/../scripts/csv_titles
+
+python `dirname ${BASH_SOURCE[0]}`/util/calc_hd5_iqr.py \
+--sflow-hd5 $EXP_DATAGRAMS

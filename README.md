@@ -69,6 +69,9 @@ EXP_LINKS_CSV=<name of the topology csv created during the experiment>
 ./demo/prepare_experiment_output_for_analysis.sh
 ```
 
+This script will also create a JSON file with IQR calculations next to the HD5 file.
+This file can be used for model error normalization, such as NRMSE.
+Comparisons of the resulting error on different experiment datasets can then be made.  
 ## Troubleshooting
 * Make sure all hosts in the experiment were found
     - If "ssh: connect to host _IP_ port 22: No route to host" is seen in the
