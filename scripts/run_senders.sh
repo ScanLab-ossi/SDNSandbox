@@ -13,7 +13,7 @@ export CONF_BASE=$EXP_DIR/config
 mkdir $CONF_BASE
 
 # generate config files for senders
-./generate_config.py -d $CONF_BASE -n $HOST_COUNT
+./generate_sender_scripts.py -d $CONF_BASE -n $HOST_COUNT
 
 # create list of interfaces + indexes (ifIndex)
 ip a | sed '/^ / d' - | cut -d: -f1,2 > $EXP_DIR/intfs-list
@@ -30,7 +30,7 @@ HOST_IP_ADDRESSES=`h=1 ; while (( $h <= $HOST_COUNT )) ; do echo 10.0.0.$((h++))
 
 SSH_PROCS=""
 for host_addr in $HOST_IP_ADDRESSES ; do
-	HOST_CONF=$CONF_BASE/config-$host_addr
+	HOST_CONF=$CONF_BASE/config-$host_addr.sh
 
 	ssh $host_addr -o StrictHostKeyChecking=false $HOST_CONF &> $EXP_DIR/sender-$host_addr.log &
 	SSH_PROCS="$SSH_PROCS $!"

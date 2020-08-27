@@ -1,0 +1,8 @@
+# The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
+# All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
+# Therefore to get a similar distribution with TCP, the normally distributed portion is:
+## Normal distribution with [100 - (100 * 15 / (15 + 55))] = 78%
+## The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
+-a 10.0.0.destination -T TCP -t duration -n 576, 190 -C pps_normal
+## Constant packet size - high - 22%
+-a destination -T TCP -t duration -c 1500 -C pps_high
