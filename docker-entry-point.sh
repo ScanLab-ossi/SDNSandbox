@@ -3,27 +3,34 @@ set -e
 
 usage_and_exit() {
   echo "------------------------------------------------------------------------"
-  echo "Run SDN RUN_EXPERIMENT"
-  echo "Assumes the experiment script, which handles the GraphML file is defined"
-  echo "as RUN_EXPERIMENT environment variable"
-  echo "Set CONTROLLER=<controller_dns_name> to set a different controller for the experiment"
+  echo "This SDNSandbox container is designed to run a SDN experiment"
+  echo "It assumes the experiment script path is provided via the"
+  echo "RUN_EXPERIMENT environment variable and it handles the GraphML input file"
+  echo
+  echo "Set either:"
+  echo "  CONTROLLER=<controller_ip>"
+  echo "  CONTROLLER=<controller_dns_name>"
+  echo "to set the SDN controller address"
+  echo
   echo "options:"
-  echo "    -h            display help information"
-  echo "    /path/file    run experiment with local topology graphml file"
-  echo "    URL           download graphml from URL and run experiment with it"
+  echo "    -h                  display help information"
+  echo "    /path/to/graphml    use graphml experiment topology file from path"
+  echo "    URL                 use graphml experiment topology file from URL"
   echo "Otherwise - exit with 1"
-  echo "NOTE: The container must run as root (privileged) to access network configurations in mininet"
+  echo "NOTE: The container must run as root (privileged)"
+  echo "to access network configurations in mininet"
   exit 1
 }
 
-convert_controller_name_to_ip() {
+check_controller() {
     CONTROLLER_IP=`getent ahostsv4 $CONTROLLER | head -n1 | cut -d" " -f1`
 
+    # This isn't an exact IP regexp, but it's good enough
     if [[ ! $CONTROLLER_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
     then
         echo "The CONTROLLER EnvVar is invalid:"
-        echo "(CONTROLLER==$CONTROLLER -> CONTROLLER_IP==$CONTROLLER_IP)... Exiting!"
-        exit 1
+        echo "Got CONTROLLER==$CONTROLLER --> CONTROLLER_IP==$CONTROLLER_IP"
+        usage_and_exit
     fi
 
     echo Pinging the SDN controller:
@@ -82,7 +89,7 @@ if [[ -v $RUN_EXPERIMENT ]]; then
   usage_and_exit
 fi
 
-convert_controller_name_to_ip
+check_controller
 
 if [[ $# -eq 1 ]]; then
   launch $1
