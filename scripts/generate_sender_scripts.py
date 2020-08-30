@@ -22,6 +22,7 @@ def create_command(params, host_id):
 %s
 for period in {1..%d}
 do
+echo "Running period #$period..."
 %s
 %s
 %s
@@ -32,7 +33,7 @@ done""" % (dests, params.periods, cp_cmd, sed_cmds, ITGSend_cmd)
 def get_ITGSend_cmd(multiflow_filename, duration_ms, grace_seconds=3):
     cmd = "timeout %d ITGSend" % int(grace_seconds + duration_ms / 1000)
     cmd += " %s -l /dev/null" % multiflow_filename
-    cmd = "[ ! `%s` ] && echo ITGSend failed... Trying again in 3 secs! && sleep 3 && %s" %\
+    cmd = "! %s && echo ITGSend failed... Trying again in 3 secs! && sleep 3 && %s" %\
         (cmd, cmd)
     return cmd
 
