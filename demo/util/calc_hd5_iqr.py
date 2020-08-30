@@ -13,8 +13,8 @@ import json
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sflow-hdf", required=True,
-                        help="The input file - an sFlow CSV file")
+    parser.add_argument("--sflow-hd5", required=True,
+                        help="The input file - the HD5 file created from the sFlow CSV file")
     parser.add_argument("-k", "--hdf-key", default="sFlow_samples",
                         help="Identifier for the group in the HDF5 store.")
     parser.add_argument("-o", "--output-path", default="",
@@ -23,7 +23,7 @@ def parse_arguments():
                         help="Set to add debug level log")
     args = parser.parse_args()
     if args.output_path == "":
-        args.output_path = args.sflow_hdf + '-iqr.json'
+        args.output_path = args.sflow_hd5 + '-iqr.json'
     return args
 
 
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    logging.info("Reading HD5 file " + args.sflow_hdf)
-    df = pd.read_hdf(args.sflow_hdf, key=args.hdf_key)
+    logging.info("Reading HD5 file " + args.sflow_hd5)
+    df = pd.read_hdf(args.sflow_hd5, key=args.hdf_key)
     logging.info("Found " + str(len(df.keys())) + " keys in the file")
     logging.info("The following keys were found: " + str(df.keys()))
 
