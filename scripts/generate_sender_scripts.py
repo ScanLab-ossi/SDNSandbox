@@ -41,11 +41,12 @@ def get_ITGSend_cmd(multiflow_filename, duration_ms, grace_period, sleep_period)
     cmd = "timeout %d ITGSend" % int(grace_period + duration_ms / 1000)
     cmd += " %s -l /dev/null" % multiflow_filename
     cmd = "date; echo \"Using following multiflow commands:\"; cat %s\n" \
-          "! %s && \\\n" \
-          "echo \"ITGSend failed with status code $? ... Trying again in %d secs!\" && \\\n"\
+          "STATUS=$(%s)\n" \
+          "! $STATUS && \\\n" \
+          "echo \"ITGSend failed with status code $STATUS ... Trying again in %d secs!\" && \\\n"\
           "sleep %d && \\\n" \
-          "date && ! %s && \\\n" \
-          "echo \"ITGSend failed again (with status code $? )\""%\
+          "date && STATUS=$(%s)\n" \
+          "! $STATUS && echo \"ITGSend failed again (with status code $STATUS )\""%\
           (multiflow_filename, cmd, sleep_period, sleep_period, cmd)
     return cmd
 
