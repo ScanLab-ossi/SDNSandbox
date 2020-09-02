@@ -48,4 +48,6 @@ sudo service openvswitch-switch restart
 # run experiment
 sudo EXP_DIR=$EXP_DIR $EXP_PY |& tee $EXP_DIR/experiment.log
 
+# prepare_experiment_output_for_analysis
+sudo EXP_DIR=$EXP_DIR ./prepare_experiment_output_for_analysis.sh
 end

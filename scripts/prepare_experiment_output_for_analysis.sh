@@ -25,3 +25,6 @@ python `dirname ${BASH_SOURCE[0]}`/util/csv2hd5.py \
 
 python `dirname ${BASH_SOURCE[0]}`/util/calc_hd5_iqr.py \
 --sflow-hd5 $EXP_DATAGRAMS.hd5
+
+python `dirname ${BASH_SOURCE[0]}`/util/plot_hd5.py \
+--sflow-hd5 $EXP_DATAGRAMS.hd5

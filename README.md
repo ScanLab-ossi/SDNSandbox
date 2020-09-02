@@ -9,7 +9,7 @@ An automated sandbox for provider SDN testing &amp; research
 We will tag our docker image with the "sdnsandbox" tag
 `sudo docker build -t sdnsandbox .`
 
-## Environment preparations
+## Environment preparation
 The following stages can be run using the following helper script:
 
 `. ./demo/prepare_environment.sh`
@@ -59,19 +59,23 @@ If you want to run experiments on multiple networks, we provide anouther helper 
 The environment is expected to be the same as in the single experiment example except for the NETWORK variable.
 
 In order to select the ITZ networks to be used for the experiments you can change the file "./demo/ISP_list.txt".
-## Transforming samples to HD5
-In order to analyze the samples, it is easier to use the HD5 file format.
+### Transforming samples to HD5
+In order to analyze the samples, we created an easier to use HD5 file format.
 
-To do that we have another helper script to use:
+To do that we have another helper script to use (that is run automatically after the experiment ends):
 ```
 EXP_DIR=<the folder with the experiment files>
-EXP_LINKS_CSV=<name of the topology csv created during the experiment>
 ./demo/prepare_experiment_output_for_analysis.sh
 ```
-
+#### IQR generation
 This script will also create a JSON file with IQR calculations next to the HD5 file.
 This file can be used for model error normalization, such as NRMSE.
-Comparisons of the resulting error on different experiment datasets can then be made.  
+Comparisons of the resulting error on different experiment datasets can then be made.
+#### Link Load Plots
+Another output of the script are plots of the load on each link (each link will have its own plot file).
+
+The plots will be found in the "plots" directory inside the experiment directory.
+  
 ## Troubleshooting
 * Make sure all hosts in the experiment were found
     - If "ssh: connect to host _IP_ port 22: No route to host" is seen in the
