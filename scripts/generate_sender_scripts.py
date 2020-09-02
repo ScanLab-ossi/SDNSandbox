@@ -11,7 +11,10 @@ hostTemplate = "10.0.0."
 def create_command(params, host_id):
     multiflow_filename = "/tmp/ITGSend_multiflow_%s" % host_id
 
-    ITGSend_cmd = get_ITGSend_cmd(multiflow_filename, params.period_length)
+    ITGSend_cmd = get_ITGSend_cmd(multiflow_filename,
+                                  params.period_length,
+                                  params.grace_period,
+                                  params.sleep_period)
 
     sed_cmds = get_sed_cmds(multiflow_filename, params, host_id)
     dests = "DESTS=(`seq 1 %d ; seq %d %d`)" %\
@@ -20,21 +23,30 @@ def create_command(params, host_id):
              (params.protocol, multiflow_filename)
     cmd = """
 %s
+
 for period in {1..%d}
 do
+
+echo "Preparing period #$period..."
+%s
+%s
 echo "Running period #$period..."
 %s
-%s
-%s
+
 done""" % (dests, params.periods, cp_cmd, sed_cmds, ITGSend_cmd)
     return cmd
 
 
-def get_ITGSend_cmd(multiflow_filename, duration_ms, grace_seconds=3):
-    cmd = "timeout %d ITGSend" % int(grace_seconds + duration_ms / 1000)
+def get_ITGSend_cmd(multiflow_filename, duration_ms, grace_period, sleep_period):
+    cmd = "timeout %d ITGSend" % int(grace_period + duration_ms / 1000)
     cmd += " %s -l /dev/null" % multiflow_filename
-    cmd = "! %s && echo ITGSend failed... Trying again in 3 secs! && sleep 3 && %s" %\
-        (cmd, cmd)
+    cmd = "date; echo \"Using following multiflow commands:\"; cat %s\n" \
+          "! %s && \\\n" \
+          "echo \"ITGSend failed with status code $? ... Trying again in %d secs!\" && \\\n"\
+          "sleep %d && \\\n" \
+          "date && ! %s && \\\n" \
+          "echo \"ITGSend failed again (with status code $? )\""%\
+          (multiflow_filename, cmd, sleep_period, sleep_period, cmd)
     return cmd
 
 
@@ -118,6 +130,12 @@ def parse_args():
                         help="The number of experiment periods in the configuration files")
     parser.add_argument("-l", "--period-length", type=int, default=30000,
                         help="The length of an experiment period in milliseconds")
+    parser.add_argument("-g", "--grace-period", type=int, default=6,
+                        help="The length of a grace period (in seconds) "
+                             "before calling a timeout on the period's sender")
+    parser.add_argument("-s", "--sleep-period", type=int, default=3,
+                        help="The length of a sleep period (in seconds) after failure"
+                             "in order to allow the sender/receiver to stabilize between runs")
     parser.add_argument("--pps-base-level", type=int, default=150,
                         help="The base level of the pps sine load curve")
     parser.add_argument("--pps-amplitude", type=int, default=100,
