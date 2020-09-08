@@ -172,8 +172,7 @@ def parse_arguments():
 
 def add_switches_with_linked_host(switches, bandwidth):
     output = ''
-    for s in range(0, len(switches)):
-        switch_id = switches.pop()
+    for switch_id in switches:
         # create switch
         output += "        s{0} = self.addSwitch('s{0}')\n".format(switch_id)
         # create corresponding host
