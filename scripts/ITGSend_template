@@ -1,0 +1,56 @@
+#!/bin/bash
+
+function run_ITGSend(){
+  echo [$(date)] Running ITGSend!
+  timeout __timeout_secs__ ITGSend __tmp_file__ -l /dev/null
+  STATUS=$?
+  echo [$(date)] "ITGSend finished with status code = $STATUS"
+  if [ $STATUS == 124 ] ; then
+    echo [$(date)] "ITGSend timed out, for the sake of traffic smoothing, we assume it was for a valid reason"
+    STATUS=0
+  fi
+  return $STATUS
+}
+
+DESTINATIONS=$(seq 1 $((__host_id__ - 1)) ; seq $((__host_id__ + 1)) __num_hosts__)
+PROTOCOL=__protocol__
+
+for period in {1..__periods__}
+do
+  echo "Preparing period #$period..."
+  cp __multiflow_path__/ITGSend_IMIX_multiflow_$PROTOCOL __tmp_file__
+  # remove explanatory comments from file (ITGSend can't handle them)
+  sed -i /^\#/d __tmp_file__
+  sed -i s/destination/__hosts_template__"${DESTINATIONS[$(( (period+__host_id__) % (__num_hosts__-1) ))]}"/g __tmp_file__
+  sed -i s/duration/__period_duration__/g __tmp_file__
+  # 2pi is the regular wavelength of sine, so we divide it by the required wavelength
+  PPS=$(awk "BEGIN{print __pps_base_level__+int(__pps_amplitude__*sin($period*2*atan2(0,-1)/__pps_wavelength__))}")
+  # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
+  # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
+  # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
+  if [ $PROTOCOL == 'UDP' ]; then
+    # Therefore to get a similar distribution with UDP:
+    # Constant packet size - low 30%
+    sed -i s/pps_low/"$(awk "BEGIN{print int(0.3 * $PPS)}")"/g __tmp_file__
+    # Normal Distribution for packet sizes - 55%
+    sed -i s/pps_normal/"$(awk "BEGIN{print int(0.55 * $PPS)}")"/g __tmp_file__
+    # Constant packet size - high - 15%
+    sed -i s/pps_high/"$(awk "BEGIN{print int(0.15 * $PPS)}")"/g __tmp_file__
+  else
+    # Therefore to get a similar distribution with TCP (which has builtin 40B ACKs):
+    # Normal distribution with [100 - (100 * 15 / (15 + 55))] = 78%
+    sed -i s/pps_normal/"$(awk "BEGIN{print int(0.78 * $PPS)}")"/g __tmp_file__
+    # Constant packet size - high - 22%
+    sed -i s/pps_high/"$(awk "BEGIN{print int(0.22 * $PPS)}")"/g __tmp_file__
+  fi
+
+  echo "Running period #$period..."
+  echo "Using following multiflow commands:"; cat __tmp_file__
+  STATUS=run_ITGSend
+  if [ $STATUS != 0 ]; then
+    echo "ITGSend failed with status code $STATUS ... Trying again in __sleep_secs__ secs!"
+    sleep __sleep_secs__
+    STATUS=run_ITGSend
+    [ $STATUS != 0 ] && echo "ITGSend failed again (with status code $STATUS)...Skipping!"
+  fi
+done

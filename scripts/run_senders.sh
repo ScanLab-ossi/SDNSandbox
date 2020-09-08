@@ -8,12 +8,12 @@ if (( $HOST_COUNT == 0 )) ; then echo "Topology isn't online - no hosts found!" 
 
 if (( $HOST_COUNT > 253 )) ; then echo "Topology is too big - current support is for up to 253 hosts only!" ; exit 1 ; fi
 
-# declare & create configuration base path
-export CONF_BASE=$EXP_DIR/config
-mkdir $CONF_BASE
+# declare & create sender scripts base path
+export SENDERS_BASE=$EXP_DIR/senders
+mkdir $SENDERS_BASE
 
 # generate config files for senders
-./generate_sender_scripts.py -d $CONF_BASE -n $HOST_COUNT
+./generate_sender_scripts.py -d $SENDERS_BASE -n $HOST_COUNT
 
 # create list of interfaces + indexes (ifIndex)
 ip a | sed '/^ / d' - | cut -d: -f1,2 > $EXP_DIR/intfs-list
@@ -30,9 +30,9 @@ HOST_IP_ADDRESSES=`h=1 ; while (( $h <= $HOST_COUNT )) ; do echo 10.0.0.$((h++))
 
 SSH_PROCS=""
 for host_addr in $HOST_IP_ADDRESSES ; do
-	HOST_CONF=$CONF_BASE/config-$host_addr.sh
+	HOST_SENDER=$SENDERS_BASE/sender-$host_addr.sh
 
-	ssh $host_addr -o StrictHostKeyChecking=false $HOST_CONF &> $EXP_DIR/sender-$host_addr.log &
+	ssh $host_addr -o StrictHostKeyChecking=false $HOST_SENDER &> $EXP_DIR/sender-$host_addr.log &
 	SSH_PROCS="$SSH_PROCS $!"
 done
 
