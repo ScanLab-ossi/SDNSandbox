@@ -35,8 +35,8 @@ def parse_arguments():
                         help="Input file listing the interfaces during the experiment")
     parser.add_argument("-t", "--titles", default="csv_titles",
                         help="The input file titles")
-    parser.add_argument("-n", "--normalize-by", default="1000000", type=float,
-                        help="The factor to normalize the input by")
+    parser.add_argument("-n", "--normalize-by", default=2**20, type=float,
+                        help="The factor to normalize the input by - defaults to Mega(2^20)")
     parser.add_argument("-o", "--output", default="",
                         help="The output file - an HD5 file representing [time,node]=speed")
     parser.add_argument("-k", "--hdf-key", default="sFlow_samples",
