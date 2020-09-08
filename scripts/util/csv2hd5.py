@@ -82,8 +82,8 @@ def get_samples_df(sflow_samples_csv, normalization_factor):
     return df
 
 
-def get_relevant_port_num_to_name_map(intfs_list_filename, switch_ids_set):
-    port_num_to_name_map = {}
+def get_relevant_interface_num_to_name_map(intfs_list_filename, switch_ids_to_names):
+    interface_num_to_name_map = {}
     with open(intfs_list_filename) as intfs_list:
         for row in intfs_list:
             if_num, if_name = row.split(': ')
@@ -91,15 +91,23 @@ def get_relevant_port_num_to_name_map(intfs_list_filename, switch_ids_set):
             if_num = int(if_num)
             # remove excess whitespace
             if_name = if_name.strip()
+            # interface names listed will be in format s<switch-id>-<port-in-switch> twice with @ as delimiter
             if_parts = if_name.split('@')
-            logging.debug("found interface: \n%s", if_parts)
+            logging.info("found interface: \n%s", if_parts)
             if len(if_parts) == 2:
-                if_switch_ids = {name.split('-')[0][1:] for name in if_parts}
-                logging.debug("found if_switch_ids: \n%s", if_switch_ids)
-                if if_switch_ids.issubset(switch_ids_set):
-                    # interface names listed will be in format s<switch-id>-<port-in-switch> twice with @ as delimiter
-                    port_num_to_name_map[if_num] = if_name
-    return port_num_to_name_map
+                if_switch_ids = [name.split('-')[0][1:] for name in if_parts]
+                logging.info("found if_switch_ids: \n%s", if_switch_ids)
+                if set(if_switch_ids).issubset(switch_ids_to_names.keys()):
+                    sw_id = if_switch_ids[0]
+                    new_name = if_name.replace("s"+sw_id,switch_ids_to_names[sw_id])
+                    sw_id = if_switch_ids[1]
+                    new_name = new_name.replace("s"+sw_id,switch_ids_to_names[sw_id])
+                    interface_num_to_name_map[if_num] = new_name
+                else:
+                    logging.info("interface ids aren't both in the experiment switch ids, irrelevant - dropped...")
+            else:
+                logging.info("interface doesn't have two parts, irrelevant - dropped...")
+    return interface_num_to_name_map
 
 
 if __name__ == '__main__':
@@ -127,23 +135,28 @@ if __name__ == '__main__':
                                       'Latency_in_ms': 'float'})
         logging.info("Links found: \n%s", links_df)
 
-        switch_ids_set = set([Link(*link).From_ID for link in links_df.values] + [Link(*link).To_ID for link in links_df.values])
-        logging.info("Switches found: \n%s", switch_ids_set)
+        switch_ids_to_names = {}
+        for link in links_df.values:
+            link_tuple = Link(*link)
+            switch_ids_to_names[link_tuple.From_ID] = link_tuple.From_Name
+            switch_ids_to_names[link_tuple.To_ID] = link_tuple.To_Name
+        logging.info("Switches found: \n%s", sorted(switch_ids_to_names))
 
-        relevant_port_num_to_name_map = get_relevant_port_num_to_name_map(args.intfs_list, switch_ids_set)
-        logging.info("Relevant ports found: \n%s", relevant_port_num_to_name_map)
+        relevant_interface_num_to_name_map = get_relevant_interface_num_to_name_map(args.intfs_list, switch_ids_to_names)
+        logging.info("Relevant ports found: \n%s", relevant_interface_num_to_name_map)
 
         df = get_samples_df(args.sflow_csv, args.normalize_by)
         logging.info('CSV dataframe:\n%s', df)
-        port_drop_list = list(filter(lambda k: k not in relevant_port_num_to_name_map.keys(), df.T.keys()))
 
+        port_drop_list = list(filter(lambda k: k not in relevant_interface_num_to_name_map.keys(), df.T.keys()))
         logging.info("dropping the following irrelevant ports from dataframe:\n%s", port_drop_list)
         df = df.drop(labels=port_drop_list)
         logging.debug('CSV dataframe after drop:\n%s', df)
     
-        df.rename(relevant_port_num_to_name_map, inplace=True)
+        df.rename(relevant_interface_num_to_name_map, inplace=True)
         logging.debug('CSV dataframe after drop after rename:\n%s', df)
 
+        logging.info('CSV dataframe will now be written to: %s', args.output)
         df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
     except Exception as e:
         logging.info("Failure converting CSV " + args.sflow_csv + " to HDF5: " + traceback.format_exc())
