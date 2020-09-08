@@ -61,7 +61,7 @@ def parse_args():
                         help="The transmission protocol to be used")
     parser.add_argument("--hosts-template", default="10.0.0.",
                         help="The IP address template to be used, of form 'x.y.z.'")
-    parser.add_argument("-m", "--multiflow-path", default=".",
+    parser.add_argument("-m", "--multiflow-path", default="scripts",
                         help="The ITGSend multiflow template files location path")
     parser.add_argument("--tmp-multiflow-path", default="/tmp",
                         help="The temporary ITGSend multiflow files base path")
