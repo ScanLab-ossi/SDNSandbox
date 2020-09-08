@@ -22,7 +22,7 @@ RUN \
     iputils-ping \
     iproute2 \
     net-tools \
-    python-netaddr \
+    python-pip \
     python3 \
     sudo \
     libsctp-dev \
@@ -55,6 +55,10 @@ RUN apt-get install -y tcpdump
 RUN mv /usr/sbin/tcpdump /usr/bin/tcpdump
 
 ADD scripts ./scripts
+
+# Install python requirements
+ADD requirements.txt requirements.txt
+pip install -r requirements.txt
 
 # Default command
 ADD docker-entry-point.sh ./
