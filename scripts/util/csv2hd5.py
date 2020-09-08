@@ -160,5 +160,6 @@ if __name__ == '__main__':
         df.T.to_hdf(args.output, key=args.hdf_key, mode='w')
     except Exception as e:
         logging.info("Failure converting CSV " + args.sflow_csv + " to HDF5: " + traceback.format_exc())
+        exit(-1)
     else:
         logging.info("sFlow CSV " + args.sflow_csv + " to HDF5 SUCCESSFUL!")
