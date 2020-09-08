@@ -46,11 +46,11 @@ do
 
   echo "Running period #$period..."
   echo "Using following multiflow commands:"; cat __tmp_file__
-  STATUS=run_ITGSend
+  STATUS=$(run_ITGSend)
   if [ $STATUS != 0 ]; then
     echo "ITGSend failed with status code $STATUS ... Trying again in __sleep_secs__ secs!"
     sleep __sleep_secs__
-    STATUS=run_ITGSend
+    STATUS=$(run_ITGSend)
     [ $STATUS != 0 ] && echo "ITGSend failed again (with status code $STATUS)...Skipping!"
   fi
 done
