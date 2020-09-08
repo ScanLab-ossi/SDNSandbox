@@ -6,6 +6,8 @@
 #################################################################################
 import argparse
 import logging
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 from os.path import join as pj
