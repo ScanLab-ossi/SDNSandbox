@@ -38,7 +38,7 @@ def write_script_to_file(commands, filename):
 
 
 def validate_args(args):
-    for arg in [args.sender_dir, args.multiflow_path, args.tmp_multiflow_path]:
+    for arg in [args.sender_dir, args.tmp_multiflow_path]:
         if not os.path.isdir(arg):
             logging.fatal("Argument specified \"%s\" is not a directory!", arg)
             exit(1)
@@ -61,7 +61,7 @@ def parse_args():
                         help="The transmission protocol to be used")
     parser.add_argument("--hosts-template", default="10.0.0.",
                         help="The IP address template to be used, of form 'x.y.z.'")
-    parser.add_argument("-m", "--multiflow-path", default="scripts",
+    parser.add_argument("-m", "--multiflow-path", default="~/scripts",
                         help="The ITGSend multiflow template files location path")
     parser.add_argument("--tmp-multiflow-path", default="/tmp",
                         help="The temporary ITGSend multiflow files base path")
@@ -113,4 +113,4 @@ if __name__ == '__main__':
         script_contents = create_script_contents(template, args, host)
         write_script_to_file(script_contents, args.sender_dir + "/sender-" + address + ".sh")
 
-    logging.info("Done generating host config files!")
+    logging.info("Done generating host sender scripts!")
