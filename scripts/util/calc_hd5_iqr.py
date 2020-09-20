@@ -74,3 +74,4 @@ if __name__ == '__main__':
     logging.debug("JSON will be created from: %s", str(results))
     with open(args.output_path, 'w') as f:
         json.dump(results, f, indent=4, separators=(',', ': '))
+    logging.info("Done writing IQR results to " + args.output_path)

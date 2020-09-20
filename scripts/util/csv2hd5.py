@@ -93,10 +93,10 @@ def get_relevant_interface_num_to_name_map(intfs_list_filename, switch_ids_to_na
             if_name = if_name.strip()
             # interface names listed will be in format s<switch-id>-<port-in-switch> twice with @ as delimiter
             if_parts = if_name.split('@')
-            logging.info("found interface: \n%s", if_parts)
+            logging.debug("found interface: \n%s", if_parts)
             if len(if_parts) == 2:
                 if_switch_ids = [name.split('-')[0][1:] for name in if_parts]
-                logging.info("found if_switch_ids: \n%s", if_switch_ids)
+                logging.debug("found if_switch_ids: \n%s", if_switch_ids)
                 if set(if_switch_ids).issubset(switch_ids_to_names.keys()):
                     sw_id = if_switch_ids[0]
                     new_name = if_name.replace("s"+sw_id,switch_ids_to_names[sw_id])
@@ -104,9 +104,9 @@ def get_relevant_interface_num_to_name_map(intfs_list_filename, switch_ids_to_na
                     new_name = new_name.replace("s"+sw_id,switch_ids_to_names[sw_id])
                     interface_num_to_name_map[if_num] = new_name
                 else:
-                    logging.info("interface ids aren't both in the experiment switch ids, irrelevant - dropped...")
+                    logging.debug("interface ids aren't both in the experiment switch ids, irrelevant - dropped...")
             else:
-                logging.info("interface doesn't have two parts, irrelevant - dropped...")
+                logging.debug("interface doesn't have two parts, irrelevant - dropped...")
     return interface_num_to_name_map
 
 
@@ -121,12 +121,12 @@ if __name__ == '__main__':
     try:
         with open(args.titles) as f:
             titles = f.readline().split(',')
-    
+
         if not requiredKeysSet.issubset(titles):
             logging.critical("One of required column titles [{-1}] missing from input titles [{1}]",
                              requiredKeysSet, titles)
             exit(-2)
-    
+
         links_df = pd.read_csv(args.links_csv,
                                dtype={'From_ID': 'str',
                                       'From_Name': 'str',
@@ -146,15 +146,15 @@ if __name__ == '__main__':
         logging.info("Relevant ports found: \n%s", relevant_interface_num_to_name_map)
 
         df = get_samples_df(args.sflow_csv, args.normalize_by)
-        logging.info('CSV dataframe:\n%s', df)
+        logging.debug('CSV dataframe:\n%s', df)
 
         port_drop_list = list(filter(lambda k: k not in relevant_interface_num_to_name_map.keys(), df.T.keys()))
         logging.info("dropping the following irrelevant ports from dataframe:\n%s", port_drop_list)
         df = df.drop(labels=port_drop_list)
         logging.debug('CSV dataframe after drop:\n%s', df)
-    
+
         df.rename(relevant_interface_num_to_name_map, inplace=True)
-        logging.debug('CSV dataframe after drop after rename:\n%s', df)
+        logging.info('CSV dataframe after drop after rename:\n%s', df)
 
         logging.info('CSV dataframe will now be written to: %s', args.output)
         df.T.to_hdf(args.output, key=args.hdf_key, mode='w')

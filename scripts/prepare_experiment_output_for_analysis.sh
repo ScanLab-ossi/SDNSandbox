@@ -17,14 +17,16 @@ EXP_LINKS_CSV=`echo $EXP_DIR/*.csv`
 EXP_DATAGRAMS=$EXP_DIR/sflow-datagrams
 EXP_INTFS=$EXP_DIR/intfs-list
 
-python `dirname ${BASH_SOURCE[0]}`/util/csv2hd5.py \
+set -x
+
+python3 `dirname ${BASH_SOURCE[0]}`/util/csv2hd5.py \
 --sflow-csv $EXP_DATAGRAMS \
 --links-csv $EXP_LINKS_CSV \
 --intfs-list $EXP_INTFS \
 --titles `dirname ${BASH_SOURCE[0]}`/../scripts/csv_titles
 
-python `dirname ${BASH_SOURCE[0]}`/util/calc_hd5_iqr.py \
+python3 `dirname ${BASH_SOURCE[0]}`/util/calc_hd5_iqr.py \
 --sflow-hd5 $EXP_DATAGRAMS.hd5
 
-python `dirname ${BASH_SOURCE[0]}`/util/plot_hd5.py \
+python3 `dirname ${BASH_SOURCE[0]}`/util/plot_hd5.py \
 --sflow-hd5 $EXP_DATAGRAMS.hd5

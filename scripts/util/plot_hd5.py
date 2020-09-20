@@ -54,3 +54,4 @@ if __name__ == '__main__':
         logging.info("Saving plot to " + filename)
         plt.savefig(filename)
         plt.close()
+    logging.info("Done plotting @ " + plots_dir)
