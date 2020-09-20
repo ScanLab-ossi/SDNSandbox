@@ -22,8 +22,9 @@ RUN \
     iputils-ping \
     iproute2 \
     net-tools \
-    python-pip \
     python3 \
+    python3-pip \
+    python3-setuptools \
     sudo \
     libsctp-dev \
     mininet \
@@ -54,11 +55,11 @@ RUN chmod 400 /root/.ssh/*
 RUN apt-get install -y tcpdump
 RUN mv /usr/sbin/tcpdump /usr/bin/tcpdump
 
-ADD scripts ./scripts
-
 # Install python requirements
 ADD requirements.txt requirements.txt
-pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
+
+ADD scripts ./scripts
 
 # Default command
 ADD docker-entry-point.sh ./
