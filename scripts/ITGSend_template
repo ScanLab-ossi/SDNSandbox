@@ -2,17 +2,22 @@
 
 function run_ITGSend(){
   echo [$(date)] Running ITGSend!
-  timeout __timeout_secs__ ITGSend __tmp_file__ -l /dev/null
+  ITGSend __tmp_file__ -l /dev/null
   STATUS=$?
-  echo [$(date)] "ITGSend finished with status code = $STATUS"
-  if [ $STATUS == 124 ] ; then
-    echo [$(date)] "ITGSend timed out, for the sake of traffic smoothing, we assume it was for a valid reason"
-    STATUS=0
+  if [ $STATUS != 0 ]; then
+    echo [$(date)] "ITGSend failed with status code $STATUS ... Trying again in __sleep_secs__ secs!"
+    sleep __sleep_secs__
+    ITGSend __tmp_file__ -l /dev/null
+    STATUS=$?
+    [ $STATUS != 0 ] && echo [$(date)] "ITGSend failed again (with status code $STATUS)...Skipping!"
   fi
+  echo [$(date)] "ITGSend finished with status code = $STATUS"
   return $STATUS
 }
+# export the function so we can make it timeout when needed
+export -f run_ITGSend
 
-DESTINATIONS=$(seq 1 $((__host_id__ - 1)) ; seq $((__host_id__ + 1)) __num_hosts__)
+DESTINATIONS=($(seq 1 $((__host_id__ - 1)) ; seq $((__host_id__ + 1)) __num_hosts__))
 PROTOCOL=__protocol__
 
 for period in {1..__periods__}
@@ -21,7 +26,9 @@ do
   cp __multiflow_path__/ITGSend_IMIX_multiflow_$PROTOCOL __tmp_file__
   # remove explanatory comments from file (ITGSend can't handle them)
   sed -i /^\#/d __tmp_file__
-  sed -i s/destination/__hosts_template__"${DESTINATIONS[$(( (period+__host_id__) % (__num_hosts__-1) ))]}"/g __tmp_file__
+  DEST_ITER=$(( ($period - 1) % (__num_hosts__ - 1) ))
+  DEST=${DESTINATIONS[$DEST_ITER]}
+  sed -i s/destination/__hosts_template__$DEST/g __tmp_file__
   sed -i s/duration/__period_duration__/g __tmp_file__
   # 2pi is the regular wavelength of sine, so we divide it by the required wavelength
   PPS=$(awk "BEGIN{print __pps_base_level__+int(__pps_amplitude__*sin($period*2*atan2(0,-1)/__pps_wavelength__))}")
@@ -46,11 +53,6 @@ do
 
   echo "Running period #$period..."
   echo "Using following multiflow commands:"; cat __tmp_file__
-  STATUS=$(run_ITGSend)
-  if [ $STATUS != 0 ]; then
-    echo "ITGSend failed with status code $STATUS ... Trying again in __sleep_secs__ secs!"
-    sleep __sleep_secs__
-    STATUS=$(run_ITGSend)
-    [ $STATUS != 0 ] && echo "ITGSend failed again (with status code $STATUS)...Skipping!"
-  fi
+  timeout __timeout_secs__ bash -c run_ITGSend
+  [ $? == 124 ] && echo [$(date)] "ITGSend timed out, for the sake of traffic smoothing, we assume it was for a valid reason"
 done
