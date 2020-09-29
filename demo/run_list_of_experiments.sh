@@ -25,4 +25,6 @@ for NETWORK in `cat $ROOT_DIR/ISP_list.txt` ; do
   echo Running experiment for: $NETWORK
   export NETWORK
   "$ROOT_DIR"/run_experiment.sh
+  # stop if failure occurred
+  [ $? != 0 ] && echo "Failure Occurred! Stopping..." && break
 done

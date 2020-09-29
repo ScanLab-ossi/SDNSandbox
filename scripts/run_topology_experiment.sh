@@ -19,6 +19,7 @@ fi
 trap end INT
 
 function end() {
+    echo Cleaning up and quitting!
     # cleanup mininet
     sudo mn -c
 
