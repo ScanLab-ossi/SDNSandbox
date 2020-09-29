@@ -32,7 +32,7 @@ RUN \
     d-itg \
     netcat \
 # Clean up packages.
-    && apt-get clean \
+    && apt-get clean
 
 WORKDIR /tmp
 
