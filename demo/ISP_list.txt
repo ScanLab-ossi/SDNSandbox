@@ -3,7 +3,6 @@ BeyondTheNetwork
 BtLatinAmerica
 Cesnet201006
 Columbus
-Cudi
 Dfn
 Esnet
 Forthnet
