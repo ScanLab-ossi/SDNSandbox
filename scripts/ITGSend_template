@@ -2,20 +2,25 @@
 
 function run_ITGSend(){
   echo [$(date)] Running ITGSend!
-  ITGSend __tmp_file__ -l /dev/null
+  START_TIME=$(date +%s)
+  CMD="timeout __timeout_secs__ ITGSend __tmp_file__ -l /dev/null"
+  $CMD
   STATUS=$?
-  if [ $STATUS != 0 ]; then
-    echo [$(date)] "ITGSend failed with status code $STATUS ... Trying again in __sleep_secs__ secs!"
-    sleep __sleep_secs__
-    ITGSend __tmp_file__ -l /dev/null
+  RETRIES_LEFT=__max_retries__
+  while [ $STATUS != 0 ]; do
+    echo [$(date)] "ITGSend failed with status code $STATUS..."
+    RETRIES_LEFT=$RETRIES_LEFT-1
+    [ $RETRIES_LEFT == 0 ] && echo "No retries left!... Stopping send loop" && break
+    ELAPSED_TIME=$(($(date +%s)-$START_TIME))
+    [ __max_retries__ -lt $ELAPSED_TIME ] && echo "Too much time passed for this period! It's been $ELAPSED_TIME seconds... Stopping send loop" && break
+    echo [$(date)] "Trying again in a second!"
+    sleep 1
+    $CMD
     STATUS=$?
-    [ $STATUS != 0 ] && echo [$(date)] "ITGSend failed again (with status code $STATUS)...Skipping!"
-  fi
+  done
   echo [$(date)] "ITGSend finished with status code = $STATUS"
   return $STATUS
 }
-# export the function so we can make it timeout when needed
-export -f run_ITGSend
 
 DESTINATIONS=($(seq 1 $((__host_id__ - 1)) ; seq $((__host_id__ + 1)) __num_hosts__))
 PROTOCOL=__protocol__
@@ -53,6 +58,5 @@ do
 
   echo "Running period #$period..."
   echo "Using following multiflow commands:"; cat __tmp_file__
-  timeout __timeout_secs__ bash -c run_ITGSend
-  [ $? == 124 ] && echo [$(date)] "ITGSend timed out, for the sake of traffic smoothing, we assume it was for a valid reason"
+  run_ITGSend
 done

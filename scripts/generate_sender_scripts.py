@@ -20,7 +20,7 @@ def create_script_contents(template, params, host_id):
         "__pps_base_level__": params.pps_base_level,
         "__pps_amplitude__": params.pps_amplitude,
         "__pps_wavelength__": params.pps_wavelength,
-        "__sleep_secs__": params.sleep_period
+        "__max_retries__": params.max_send_retries
     }
     contents = template
     for old, new in replacements.items():
@@ -76,7 +76,7 @@ def parse_args():
     parser.add_argument("-g", "--grace-period", type=int, default=6,
                         help="The length of a grace period (in seconds) "
                              "before calling a timeout on the period's sender")
-    parser.add_argument("-s", "--sleep-period", type=int, default=3,
+    parser.add_argument("-r", "--max-send-retries", type=int, default=10,
                         help="The length of a sleep period (in seconds) after failure"
                              "in order to allow the sender/receiver to stabilize between runs")
     parser.add_argument("--pps-base-level", type=int, default=150,

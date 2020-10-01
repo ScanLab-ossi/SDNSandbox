@@ -36,9 +36,12 @@ for host_addr in $HOST_IP_ADDRESSES ; do
 	SSH_PROCS="$SSH_PROCS $!"
 done
 
+# zombie killer: sometimes timeout is stuck waiting for a zombie child process, this hack eliminates the problem
+bash -c $'while true ; do ps -e -o stat,ppid | grep \'^Z \' | awk \'{print $2}\' | xargs --no-run-if-empty kill -9; sleep 1 ;done' &
+ZOMBIE_KILLER_PID=$!
 echo "Waiting for senders (proc_ids = $SSH_PROCS )"
 wait $SSH_PROCS
-
+kill $ZOMBIE_KILLER_PID
 # stop datagram collection
 pkill -15 sflowtool
 
