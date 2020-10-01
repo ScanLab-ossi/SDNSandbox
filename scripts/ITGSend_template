@@ -23,6 +23,7 @@ function run_ITGSend(){
 }
 
 DESTINATIONS=($(seq 1 $((__host_id__ - 1)) ; seq $((__host_id__ + 1)) __num_hosts__))
+echo Relavant destinations are: ${DESTINATIONS[@]}
 PROTOCOL=__protocol__
 
 for period in {1..__periods__}
@@ -31,7 +32,8 @@ do
   cp __multiflow_path__/ITGSend_IMIX_multiflow_$PROTOCOL __tmp_file__
   # remove explanatory comments from file (ITGSend can't handle them)
   sed -i /^\#/d __tmp_file__
-  DEST_ITER=$(( ($period - 1) % (__num_hosts__ - 1) ))
+  # start from the next IP after the host and loop over destinations
+  DEST_ITER=$(( ($period - 1 + __host_id__ - 1) % (__num_hosts__ - 1) ))
   DEST=${DESTINATIONS[$DEST_ITER]}
   sed -i s/destination/__hosts_template__$DEST/g __tmp_file__
   sed -i s/duration/__period_duration__/g __tmp_file__
