@@ -128,11 +128,11 @@ if __name__ == '__main__':
             exit(-2)
 
         links_df = pd.read_csv(args.links_csv,
-                               dtype={'From_ID': 'str',
-                                      'From_Name': 'str',
-                                      'To_ID': 'str',
-                                      'To_Name': 'str',
-                                      'Latency_in_ms': 'float'})
+                               converters={'From_ID': str,
+                                           'From_Name': str,
+                                           'To_ID': str,
+                                           'To_Name': str,
+                                           'Latency_in_ms': float})
         logging.info("Links found: \n%s", links_df)
 
         switch_ids_to_names = {}
@@ -140,7 +140,7 @@ if __name__ == '__main__':
             link_tuple = Link(*link)
             switch_ids_to_names[link_tuple.From_ID] = link_tuple.From_Name
             switch_ids_to_names[link_tuple.To_ID] = link_tuple.To_Name
-        logging.info("Switches found: \n%s", sorted(switch_ids_to_names))
+        logging.info("Switches found: \n%s", sorted(switch_ids_to_names.items()))
 
         relevant_interface_num_to_name_map = get_relevant_interface_num_to_name_map(args.intfs_list, switch_ids_to_names)
         logging.info("Relevant ports found: \n%s", relevant_interface_num_to_name_map)
