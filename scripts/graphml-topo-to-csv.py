@@ -52,9 +52,6 @@ def remove_bad_chars(text):
 def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xmlns}"):
     # INITIALIZE VARIABLES TO SAVE FOUND DATA FIRST
     # for saving the current values
-    node_name_value = ''
-    node_longitude_value = ''
-    node_latitude_value = ''
 
     id_node_map = {}
     # FIND OUT WHAT KEYS ARE TO BE USED, SINCE THIS DIFFERS IN DIFFERENT GRAPHML TOPOLOGIES
@@ -66,6 +63,9 @@ def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xm
     # GET LONGITUDE DATA
     # GET LATITUDE DATA
     for n in nodes:
+        node_name_value = ''
+        node_longitude_value = ''
+        node_latitude_value = ''
         node_index_value = n.attrib['id']
         # get all data elements residing under all node elements
         data_set = n.findall(ns + 'data')
