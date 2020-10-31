@@ -31,12 +31,15 @@ RUN \
     openvswitch-switch \
     d-itg \
     netcat \
+    tcpdump \
 # Clean up packages.
     && apt-get clean
 
-WORKDIR /tmp
+# HACK around https://github.com/dotcloud/docker/issues/5490
+RUN cp /usr/sbin/tcpdump /usr/bin/tcpdump
 
 # install sflowtool
+WORKDIR /tmp
 RUN git clone http://github.com/sflow/sflowtool \
     && cd sflowtool \
     && ./boot.sh \
@@ -44,23 +47,13 @@ RUN git clone http://github.com/sflow/sflowtool \
     && make \
     && make install
 
-WORKDIR /root
-
-# Create SSH keys
-RUN cat /dev/zero | ssh-keygen -q -N ""
-RUN cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-RUN chmod 400 /root/.ssh/*
-
-# HACK around https://github.com/dotcloud/docker/issues/5490
-RUN apt-get install -y tcpdump
-RUN mv /usr/sbin/tcpdump /usr/bin/tcpdump
+WORKDIR ~
 
 # Install python requirements
 ADD requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
-ADD scripts ./scripts
+ADD sdnsandbox ./sdnsandbox
 
 # Default command
-ADD docker-entry-point.sh ./
-ENTRYPOINT ["./docker-entry-point.sh"]
+ENTRYPOINT ["python3  -m sdnsandbox -c example.config.json -o "]

@@ -1,0 +1,70 @@
+import time
+import logging
+import math
+from geopy.distance import geodesic
+from subprocess import run
+from pkg_resources import resource_filename
+from os.path import join as pj
+
+
+def countdown(seconds, time_format='{{:02d}}:{{:02d}}'):
+    while seconds:
+        mins, secs = divmod(seconds, 60)
+        time_left = time_format.format(mins, secs)
+        logging.info(time_left)
+        time.sleep(1)
+        seconds -= 1
+    logging.info('Done!')
+
+
+def remove_bad_chars(text, bad_chars):
+    for c in bad_chars:
+        if c in text:
+            text = text.replace(c, "")
+    return text
+
+
+def calculate_geodesic_latency(lat_src, long_src, lat_dst, long_dst):
+    """Effective speed based on https://en.wikipedia.org/wiki/Optical_fiber"""
+    dist = geodesic((lat_src, long_src), (lat_dst, long_dst)).meters
+    lightspeed_m_per_millisec = 299792.458
+    optical_fibre_refraction_index = 1.4475
+    actual_speed = lightspeed_m_per_millisec / optical_fibre_refraction_index
+    return dist / actual_speed
+
+
+def __calculate_latency(lat_src, long_src, lat_dst, long_dst):
+    """This is here for backwards compatibility.
+       CALCULATION EXPLANATION
+
+       Distance formula:
+       dist(SP,EP) = arccos{ sin(La[EP]) * sin(La[SP]) + cos(La[EP]) * cos(La[SP]) * cos(Lo[EP] - Lo[SP])} * r
+       Earth's r = 6378.137 km
+
+       Speed of light, not within a vacuumed box:
+       v =~ 1.97 * 10**8 m/s
+
+       Latency formula:
+       t = distance / speed of light
+       t (in ms) = ( distance in km * 1000 (for meters) ) / ( speed of light / 1000 (for ms))"""
+    logging.debug("Calculating with src_lat=%s src_lon=%s dst_lat=%s dst_lon=%s",
+                  lat_src, long_src,
+                  lat_dst, long_dst)
+    latitude_src = math.radians(lat_src)
+    latitude_dst = math.radians(lat_dst)
+    longitude_src = math.radians(long_src)
+    longitude_dst = math.radians(long_dst)
+    first_product = math.sin(latitude_dst) * math.sin(latitude_src)
+    second_product_first_part = math.cos(latitude_dst) * math.cos(latitude_src)
+    second_product_second_part = math.cos(longitude_dst - longitude_src)
+    distance = math.acos(first_product + (second_product_first_part * second_product_second_part)) * 6378.137
+    return (distance * 1000) / 197000
+
+
+def run_script(script_name):
+    script_path = resource_filename('sdnsandbox', pj("scripts", script_name))
+    result = run(script_path, text=True)
+    logging.info(result.stdout)
+    logging.error(result.stderr)
+    result.check_returncode()
+

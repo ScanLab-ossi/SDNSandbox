@@ -1,0 +1,26 @@
+{
+  "topology": {
+    "type": "ITZ",
+    "graphml": "",
+    "bandwidth": {
+      "host_mbps": 10,
+      "switch_mbps": 100
+      }
+  },
+  "controller": {
+    "ip": "controller",
+    "port": 6653
+  },
+  "load_generator": {
+    "type": "DITG",
+    "protocol": "UDP",
+    "periods": 1200,
+    "period_seconds": 30,
+    "pps_baseline": 150,
+    "pps_amplitude": 100,
+    "pps_wavelength": 25
+  },
+  "monitor": {
+    "type": "sflow"
+  }
+}
