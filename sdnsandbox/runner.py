@@ -4,7 +4,7 @@ from mininet.link import TCLink
 from mininet.util import dumpNodeConnections
 from os.path import join as pj
 from sdnsandbox.util import countdown
-from pynetlinux import ifconfig
+from ifaddr import get_adapters
 
 
 class Runner(object):
@@ -44,4 +44,4 @@ class Runner(object):
     @staticmethod
     def save_interfaces_list(interfaces_filename):
         with open(interfaces_filename, 'w') as f:
-            f.write(ifconfig.list_ifs(physical=False))
+            f.write(get_adapters())
