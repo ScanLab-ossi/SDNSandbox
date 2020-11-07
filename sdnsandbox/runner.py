@@ -1,7 +1,7 @@
 import logging
 from mininet.net import Mininet
 from mininet.link import TCLink
-from mininet.util import dumpNodeConnections
+from mininet.util import dumpNetConnections
 from os.path import join as pj
 from sdnsandbox.util import countdown
 from ifaddr import get_adapters
@@ -36,7 +36,7 @@ class Runner(object):
         logging.info("Waiting for the controller to finish network setup...")
         countdown(3)
 
-        dumpNodeConnections(network)
+        dumpNetConnections(network)
         logging.info("PingAll to make sure everything's OK")
         network.pingAllFull()
         return network
