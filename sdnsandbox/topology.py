@@ -57,8 +57,7 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
 
     @staticmethod
     def get_graph_sets_from_graphml(graphml, ns="{http://graphml.graphdrawing.org/xmlns}"):
-        xml_tree = ElementTree.fromstring(graphml)
-        root_element = xml_tree.getroot()
+        root_element = ElementTree.fromstring(graphml)
         graph_element = root_element.find(ns + 'graph')
         index_values = root_element.findall(ns + 'key')
         nodes = graph_element.findall(ns + 'node')
@@ -129,10 +128,10 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
                 logging.debug("Missing edge node id in valid node list - skipping Edge=%s", e.attrib)
                 continue
             latency = latency_function(float(nodes[src_id].Latitude),
-                                       float(nodes[dst_id].Latitude),
                                        float(nodes[src_id].Longitude),
+                                       float(nodes[dst_id].Latitude),
                                        float(nodes[dst_id].Longitude))
             src_name = nodes[src_id].Name
             dst_name = nodes[dst_id].Name
-            switch_links.append(Link(src_id, src_name, dst_id, dst_name, latency))
+            switch_links.append(Link(src_id, src_name, dst_id, dst_name, str(latency)))
         return switch_links
