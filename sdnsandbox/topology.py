@@ -13,7 +13,8 @@ class TopologyFactory(object):
     @staticmethod
     def create(topology_conf):
         if topology_conf["type"] == "ITZ":
-            with urlopen(topology_conf["graphml"]) as graphml:
+            with urlopen(topology_conf["graphml"]) as response:
+                graphml = response.read().decode("utf-8")
                 bandwidth = topology_conf["bandwidth"]
                 return ITZTopologyBuilder(graphml, bandwidth["host_mbps"], bandwidth["switch_mbps"]).build()
         else:
