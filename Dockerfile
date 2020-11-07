@@ -47,7 +47,12 @@ RUN git clone http://github.com/sflow/sflowtool \
     && make \
     && make install
 
-WORKDIR ~
+# install mininet @ a python3-compatible tag
+WORKDIR /tmp
+RUN git clone git://github.com/mininet/mininet \
+    && cd mininet \
+    && git checkout -b 2.3.0d5
+    && ./util/install.sh -s . -nfv
 
 # Install python requirements
 ADD requirements.txt requirements.txt
