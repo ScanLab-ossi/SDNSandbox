@@ -23,7 +23,7 @@ def setup_logging(sdnsandbox_debug, mininet_debug):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="sdnsandbox")
     parser.add_argument("-c", "--config", required=True, help="JSON configuration file")
     parser.add_argument("-o", "--output-dir", required=True, help="The experiment output directory")
     parser.add_argument("-d", "--debug", action="store_true", help="Set mininet verbosity to high (debug level)")
@@ -31,9 +31,9 @@ def parse_arguments():
     return parser.parse_args()
 
 
-args = parse_arguments(prog="sdnsandbox")
+args = parse_arguments()
 setup_logging(args.debug, args.mininet_debug)
-with  open(args.config) as conf_file:
+with open(args.config) as conf_file:
     conf = load(conf_file)
     topology_conf = conf['topology']
     controller_conf = conf['controller']
