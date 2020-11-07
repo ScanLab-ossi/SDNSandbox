@@ -27,7 +27,6 @@ RUN \
     python3-setuptools \
     sudo \
     libsctp-dev \
-    mininet \
     openvswitch-switch \
     d-itg \
     netcat \
@@ -51,7 +50,7 @@ RUN git clone http://github.com/sflow/sflowtool \
 WORKDIR /tmp
 RUN git clone git://github.com/mininet/mininet \
     && cd mininet \
-    && git checkout -b 2.3.0d5
+    && git checkout -b 2.3.0d5 \
     && ./util/install.sh -s . -nfv
 
 # Install python requirements
