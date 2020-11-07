@@ -1,3 +1,5 @@
+from socket import gethostbyname_ex
+
 from sdnsandbox.runner import Runner
 from sdnsandbox.topology import TopologyFactory
 from sdnsandbox.load_generator import LoadGeneratorFactory
@@ -39,7 +41,9 @@ with  open(args.config) as conf_file:
     monitor_conf = conf['monitor']
 
 topology = TopologyFactory.create(topology_conf)
-controller = RemoteController('controller', ip=controller_conf['ip'], port=controller_conf["port"])
+# we assume the first ip is enough, this works for both an IP address and DNS name
+controller_ip = gethostbyname_ex(controller_conf['ip'])[2][0]
+controller = RemoteController('controller', ip=controller_ip, port=controller_conf["port"])
 load_generator = LoadGeneratorFactory.create(load_generator_conf)
 monitor = MonitorFactory()
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir)
