@@ -57,8 +57,10 @@ RUN git clone git://github.com/mininet/mininet \
 ADD requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
+WORKDIR /tmp
 ADD sdnsandbox ./sdnsandbox
 ADD example.config.json ./example.config.json
+ADD docker-entry-point.sh ./docker-entry-point.sh
 
 # Default command
-ENTRYPOINT ["python3  -m sdnsandbox -c example.config.json -o "]
+ENTRYPOINT ["./docker-entry-point.sh"]
