@@ -92,7 +92,7 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
                     "Found empty string as node value (name/lat/long) for index=%s - invalidating and skipping",
                     node_index_value)
                 continue
-            id_node_map[node_index_value] = Node(node_name_value, node_longitude_value, node_latitude_value)
+            id_node_map[node_index_value] = Node(node_name_value, node_latitude_value, node_longitude_value)
             logging.debug("Added for key=%s Node=%s", node_index_value, id_node_map[node_index_value])
         logging.info("Found a total of %d valid nodes", len(id_node_map))
         return id_node_map
