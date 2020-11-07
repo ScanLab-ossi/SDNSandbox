@@ -1,6 +1,6 @@
 from sdnsandbox.runner import Runner
 from sdnsandbox.topology import TopologyFactory
-from sdnsandbox.load_generator import DITGLoadGenerator, Protocol, LoadGeneratorFactory
+from sdnsandbox.load_generator import LoadGeneratorFactory
 from sdnsandbox.monitor import MonitorFactory
 from mininet.node import RemoteController
 from mininet.log import setLogLevel
@@ -29,9 +29,10 @@ def parse_arguments():
     return parser.parse_args()
 
 
-args = parse_arguments()
+args = parse_arguments(prog="sdnsandbox")
 setup_logging(args.debug, args.mininet_debug)
-with load(args.config) as conf:
+with  open(args.config) as conf_file:
+    conf = load(conf_file)
     topology_conf = conf['topology']
     controller_conf = conf['controller']
     load_generator_conf = conf['load_generator']
@@ -39,7 +40,7 @@ with load(args.config) as conf:
 
 topology = TopologyFactory.create(topology_conf)
 controller = RemoteController('controller', ip=controller_conf['ip'], port=controller_conf["port"])
-load_generator = LoadGeneratorFactory(load_generator_conf)
+load_generator = LoadGeneratorFactory.create(load_generator_conf)
 monitor = MonitorFactory()
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir)
 try:
