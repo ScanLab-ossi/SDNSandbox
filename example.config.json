@@ -1,7 +1,7 @@
 {
   "topology": {
     "type": "ITZ",
-    "graphml": "",
+    "graphml": "http://www.topology-zoo.org/files/Aarnet.graphml",
     "bandwidth": {
       "host_mbps": 10,
       "switch_mbps": 100
