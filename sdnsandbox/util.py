@@ -11,14 +11,14 @@ optical_fibre_refraction_index = 1.4475
 optical_fibre_lightspeed_m_per_millisec = lightspeed_m_per_millisec / optical_fibre_refraction_index
 
 
-def countdown(seconds, time_format='{{:02d}}:{{:02d}}'):
+def countdown(printer_func, seconds, time_format='{:02d}:{:02d}', delay_func=time.sleep):
     while seconds:
         mins, secs = divmod(seconds, 60)
         time_left = time_format.format(mins, secs)
-        logging.info(time_left)
-        time.sleep(1)
+        printer_func(time_left)
+        delay_func(1)
         seconds -= 1
-    logging.info('Done!')
+    printer_func('Done!')
 
 
 def remove_bad_chars(text, bad_chars):

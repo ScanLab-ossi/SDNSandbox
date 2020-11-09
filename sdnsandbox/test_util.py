@@ -1,5 +1,6 @@
+import io
 from unittest import TestCase
-from sdnsandbox.util import calculate_geodesic_latency, _calculate_latency
+from sdnsandbox.util import countdown, calculate_geodesic_latency, _calculate_latency
 
 
 class TestUtil(TestCase):
@@ -18,3 +19,8 @@ class TestUtil(TestCase):
     def test___calculate_latency_microsecond_accuracy(self):
         latency = _calculate_latency(0, 0, 10, 10)
         self.assertAlmostEqual(latency, 7.581, delta=0.001)
+
+    def test_countdown(self):
+        output = io.StringIO()
+        countdown(output.write, 3, delay_func=lambda a: a)
+        self.assertEqual(output.getvalue(), '00:0300:0200:01Done!')
