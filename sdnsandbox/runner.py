@@ -9,12 +9,13 @@ from ifaddr import get_adapters
 
 class Runner(object):
     def __init__(self, topology, controller, load_generator, monitor, output_dir):
-        self.net = self.setup_network(topology, controller)
+        self.net = Mininet(topo=topology, controller=lambda: controller, link=TCLink)
         self.load_generator = load_generator
         self.monitor = monitor
         self.output_dir = output_dir
 
     def run(self):
+        self.run_network()
         self.load_generator.start_receivers(self.net, self.output_dir)
         self.monitor.start_monitoring()
         self.load_generator.run_senders(self.net, self.output_dir)
@@ -28,18 +29,17 @@ class Runner(object):
         logging.info("Stopping the network...")
         self.net.stop()
 
-    @staticmethod
-    def setup_network(topology, controller):
+    def run_network(self):
         """Create network and start it"""
-        network = Mininet(topo=topology, controller=controller, link=TCLink)
+        self.net.start()
 
         logging.info("Waiting for the controller to finish network setup...")
-        countdown(3)
+        countdown(logging.info, 3)
 
-        dumpNetConnections(network)
+        dumpNetConnections(self.net)
         logging.info("PingAll to make sure everything's OK")
-        network.pingAllFull()
-        return network
+        self.net.pingAllFull()
+        return self.net
 
     @staticmethod
     def save_interfaces_list(interfaces_filename):
