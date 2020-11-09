@@ -2,7 +2,7 @@ import time
 import logging
 import math
 from geopy.distance import geodesic
-from subprocess import run
+from subprocess import run, PIPE
 from pkg_resources import resource_filename
 from os.path import join as pj
 
@@ -61,7 +61,7 @@ def _calculate_latency(lat_src, long_src, lat_dst, long_dst):
 
 def run_script(script_name):
     script_path = resource_filename('sdnsandbox', pj("scripts", script_name))
-    result = run(script_path, universal_newlines=True)
+    result = run(script_path, universal_newlines=True, stdout=PIPE, stderr=PIPE)
     if result.stdout:
         logging.info(result.stdout)
     if result.stderr:
