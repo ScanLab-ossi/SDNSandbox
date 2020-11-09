@@ -9,7 +9,7 @@ from ifaddr import get_adapters
 
 class Runner(object):
     def __init__(self, topology, controller, load_generator, monitor, output_dir):
-        self.net = Mininet(topo=topology, controller=lambda: controller, link=TCLink)
+        self.net = Mininet(topo=topology, controller=lambda unneeded: controller, link=TCLink)
         self.load_generator = load_generator
         self.monitor = monitor
         self.output_dir = output_dir
