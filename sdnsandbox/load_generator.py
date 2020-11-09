@@ -87,8 +87,8 @@ class DITGLoadGenerator(LoadGenerator):
         makedirs(logs_path)
         host_addresses = [host.IP() for host in network.hosts]
         for period in range(self.periods):
-            for host in network.hosts:
-                dest = self.calculate_destination(period, host.IP(), host_addresses)
+            for host_index, host in enumerate(network.hosts):
+                dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
             # TODO: make sure the sender filled the whole duration with packets (rerun after crash)?
@@ -117,8 +117,8 @@ class DITGLoadGenerator(LoadGenerator):
             receiver.process.terminate()
             receiver.logfile.close()
 
-    def calculate_destination(self, period, host_address, other_addresses):
-        host_id = host_address.split(".")[-1]
+    @staticmethod
+    def calculate_destination(period, host_id, other_addresses):
         period_dest_index = (period - 1) + (host_id - 1)
         return other_addresses[period_dest_index % len(other_addresses)]
 
