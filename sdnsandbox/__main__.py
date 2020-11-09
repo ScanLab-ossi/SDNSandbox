@@ -45,7 +45,7 @@ topology = TopologyFactory.create(topology_conf)
 controller_ip = gethostbyname_ex(controller_conf['ip'])[2][0]
 controller = RemoteController('controller', ip=controller_ip, port=controller_conf["port"])
 load_generator = LoadGeneratorFactory.create(load_generator_conf)
-monitor = MonitorFactory()
+monitor = MonitorFactory().create(monitor_conf)
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir)
 try:
     runner.run()
