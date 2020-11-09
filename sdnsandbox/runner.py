@@ -14,17 +14,17 @@ class Runner(object):
         self.monitor = monitor
         self.output_dir = output_dir
 
-    def run(self):
+    def run(self,
+            interfaces_filename="interfaces",
+            monitoring_data_filename="monitoring_data"):
         self.run_network()
+        self.save_interfaces_list(pj(self.output_dir, interfaces_filename))
         self.load_generator.start_receivers(self.net, self.output_dir)
-        self.monitor.start_monitoring()
+        self.monitor.start_monitoring(pj(self.output_dir, monitoring_data_filename))
         self.load_generator.run_senders(self.net, self.output_dir)
 
-    def save_monitoring_data_and_stop(self,
-                                      interfaces_filename="interfaces",
-                                      monitoring_data_filename="monitoring_data"):
-        self.save_interfaces_list(pj(self.output_dir, interfaces_filename))
-        self.monitor.save_monitoring_data_and_stop(pj(self.output_dir, monitoring_data_filename))
+    def save_monitoring_data_and_stop(self):
+        self.monitor.save_monitoring_data_and_stop()
         self.load_generator.stop_receivers(self.net)
         logging.info("Stopping the network...")
         self.net.stop()
