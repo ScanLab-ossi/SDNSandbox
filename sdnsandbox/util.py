@@ -61,8 +61,10 @@ def _calculate_latency(lat_src, long_src, lat_dst, long_dst):
 
 def run_script(script_name):
     script_path = resource_filename('sdnsandbox', pj("scripts", script_name))
-    result = run(script_path, text=True)
-    logging.info(result.stdout)
-    logging.error(result.stderr)
+    result = run(script_path, universal_newlines=True)
+    if result.stdout:
+        logging.info(result.stdout)
+    if result.stderr:
+        logging.error(result.stderr)
     result.check_returncode()
 
