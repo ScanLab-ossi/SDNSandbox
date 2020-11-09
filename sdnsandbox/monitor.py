@@ -41,7 +41,7 @@ class SFlowMonitor(Monitor):
             logging.info("Creating sFlow monitoring instances in the ovs switches")
             run_script("set_ovs_sflow.sh")
             logging.info("Starting sflowtool to record monitoring data")
-            self.sflowtool_proc = Popen(self.sflowtool_cmd + " -k -L " + self.sflow_keys_to_monitor)
+            self.sflowtool_proc = Popen([self.sflowtool_cmd, "-k", "-L", self.sflow_keys_to_monitor])
         else:
             logging.error("Monitoring is already running")
 
