@@ -4,4 +4,3 @@ numpy==1.19.2
 pandas==0.25.1
 tables==3.5.2
 geopy==2.0.0
-ifaddr==0.1.7

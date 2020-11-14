@@ -68,3 +68,14 @@ def run_script(script_name):
         logging.error(result.stderr)
     result.check_returncode()
 
+
+def get_interfaces(ip_a_getter=lambda: run("ip a", universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
+    ip_a_out = ip_a_getter()
+    interfaces = {}
+    for line in ip_a_out.splitlines():
+        # ignore none-main lines (those with extra data, not intf definition)
+        if line[0] == ' ':
+            continue
+        intf_split = line.split(':')
+        interfaces[intf_split[0]] = intf_split[1].strip()
+    return interfaces

@@ -1,10 +1,11 @@
 import logging
+from json import dump
+
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.util import dumpNetConnections
 from os.path import join as pj
-from sdnsandbox.util import countdown
-from ifaddr import get_adapters
+from sdnsandbox.util import countdown, get_interfaces
 
 
 class Runner(object):
@@ -19,7 +20,7 @@ class Runner(object):
             interfaces_filename="interfaces",
             monitoring_data_filename="monitoring_data"):
         self.run_network()
-        self.save_interfaces_list(pj(self.output_dir, interfaces_filename))
+        self.save_interfaces(pj(self.output_dir, interfaces_filename))
         self.load_generator.start_receivers(self.net, self.output_dir)
         self.monitor.start_monitoring(pj(self.output_dir, monitoring_data_filename))
         self.load_generator.run_senders(self.net, self.output_dir)
@@ -44,6 +45,7 @@ class Runner(object):
         return self.net
 
     @staticmethod
-    def save_interfaces_list(interfaces_filename):
+    def save_interfaces(interfaces_filename):
+        interfaces = get_interfaces()
         with open(interfaces_filename, 'w') as f:
-            f.write(get_adapters())
+            dump(interfaces, f, sort_keys=True, indent=4)
