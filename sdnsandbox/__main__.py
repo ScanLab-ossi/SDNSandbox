@@ -1,5 +1,4 @@
 from socket import gethostbyname_ex
-
 from sdnsandbox.runner import Runner
 from sdnsandbox.topology import TopologyFactory
 from sdnsandbox.load_generator import LoadGeneratorFactory
@@ -37,6 +36,7 @@ with open(args.config) as conf_file:
     conf = load(conf_file)
     topology_conf = conf['topology']
     controller_conf = conf['controller']
+    runner_conf = conf['runner']
     load_generator_conf = conf['load_generator']
     monitor_conf = conf['monitor']
 
@@ -48,7 +48,7 @@ load_generator = LoadGeneratorFactory.create(load_generator_conf)
 monitor = MonitorFactory().create(monitor_conf)
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir)
 try:
-    runner.run()
+    runner.run(ping_all_full=runner_conf['pingAllFull'])
     runner.save_monitoring_data_and_stop()
 except KeyboardInterrupt:
     logging.fatal("Interrupted during experiment... Cleaning up and exiting...")

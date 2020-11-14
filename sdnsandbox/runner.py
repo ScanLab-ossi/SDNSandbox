@@ -8,11 +8,12 @@ from ifaddr import get_adapters
 
 
 class Runner(object):
-    def __init__(self, topology, controller, load_generator, monitor, output_dir):
+    def __init__(self, topology, controller, load_generator, monitor, output_dir, ping_all_full=False):
         self.net = Mininet(topo=topology, controller=lambda unneeded: controller, link=TCLink)
         self.load_generator = load_generator
         self.monitor = monitor
         self.output_dir = output_dir
+        self.ping_all_full = ping_all_full
 
     def run(self,
             interfaces_filename="interfaces",
@@ -37,8 +38,9 @@ class Runner(object):
         countdown(logging.info, 3)
 
         dumpNetConnections(self.net)
-        logging.info("PingAll to make sure everything's OK")
-        self.net.pingAllFull()
+        if self.ping_all_full:
+            logging.info("PingAll to make sure everything's OK")
+            self.net.pingAllFull()
         return self.net
 
     @staticmethod

@@ -11,6 +11,9 @@
     "ip": "controller",
     "port": 6653
   },
+  "runner": {
+    "pingAllFull": false
+  },
   "load_generator": {
     "type": "DITG",
     "protocol": "UDP",
