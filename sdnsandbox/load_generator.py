@@ -44,11 +44,11 @@ class LoadGenerator(ABC):
 
     @abstractmethod
     def start_receivers(self, network, output_path):
-        return self.receivers
+        pass
 
     @abstractmethod
     def run_senders(self, network, output_path):
-        return self.senders
+        pass
 
     @abstractmethod
     def stop_receivers(self):
@@ -99,7 +99,8 @@ class DITGLoadGenerator(LoadGenerator):
                 time_passed = monotonic() - sender.start_time
                 timeout = self.period_duration_seconds - time_passed
                 try:
-                    sender.process.wait(timeout=timeout)
+                    if sender.process.poll() is None:
+                        sender.process.wait(timeout=timeout)
                 except TimeoutExpired as e:
                     logger.error("Sender timed out: %s", str(e))
                 sender.logfile.close()
