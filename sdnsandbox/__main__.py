@@ -1,3 +1,4 @@
+import sys
 from socket import gethostbyname_ex
 from sdnsandbox.runner import Runner
 from sdnsandbox.topology import TopologyFactory
@@ -12,15 +13,18 @@ from os.path import join as pj
 
 
 def setup_logging(sdnsandbox_debug, mininet_debug, output_dir):
+    root_logger = logging.getLogger()
     if sdnsandbox_debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+        root_logger.setLevel(logging.DEBUG)
     else:
-        logging.getLogger().setLevel(logging.INFO)
+        root_logger.setLevel(logging.INFO)
     if mininet_debug:
         setLogLevel('debug')
     else:
         setLogLevel('info')
-    logging.getLogger().addHandler(logging.FileHandler(pj(output_dir, 'sdnsandbox.log')))
+    root_logger.addHandler(logging.FileHandler(pj(output_dir, 'sdnsandbox.log')))
+    root_logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(prog="sdnsandbox")
