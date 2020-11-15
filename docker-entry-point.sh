@@ -2,4 +2,4 @@
 set -e
 
 service openvswitch-switch start
-PYTHONPATH="./mininet" python3 -m sdnsandbox -c example.config.json -o /opt
+SHELL="/bin/bash" PYTHONPATH="./mininet" python3 -m sdnsandbox -c example.config.json -o /opt

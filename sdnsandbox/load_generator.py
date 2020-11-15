@@ -78,7 +78,7 @@ class DITGLoadGenerator(LoadGenerator):
         for host in network.hosts:
             log_path = pj(logs_path, "receiver-" + host.IP() + ".log")
             logfile = open(log_path, 'w')
-            itg_recv = host.popen(itg_recv_cmd, stderr=STDOUT, stdout=logfile)
+            itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(self.Receiver(itg_recv, logfile))
 
     def run_senders(self, network, output_path):
