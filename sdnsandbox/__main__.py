@@ -22,8 +22,13 @@ def setup_logging(sdnsandbox_debug, mininet_debug, output_dir):
         setLogLevel('debug')
     else:
         setLogLevel('info')
-    root_logger.addHandler(logging.FileHandler(pj(output_dir, 'sdnsandbox.log')))
-    root_logger.addHandler(logging.StreamHandler(sys.stdout))
+    fh = logging.FileHandler(pj(output_dir, 'sdnsandbox.log'))
+    sh = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s->%(name)s-%(levelname)s: %(message)s')
+    fh.setFormatter(formatter)
+    sh.setFormatter(formatter)
+    root_logger.addHandler(fh)
+    root_logger.addHandler(sh)
 
 
 def parse_arguments():

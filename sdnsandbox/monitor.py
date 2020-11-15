@@ -6,6 +6,9 @@ from shutil import which
 from os.path import join as pj
 
 
+logger = logging.getLogger(__name__)
+
+
 class MonitorFactory(object):
     @staticmethod
     def create(monitor_conf):
@@ -40,20 +43,20 @@ class SFlowMonitor(Monitor):
 
     def start_monitoring(self, output_path):
         if self.sflowtool_proc is None:
-            logging.info("Starting sFlow monitoring")
-            logging.info("Creating sFlow monitoring instances in the ovs switches")
-            run_script("set_ovs_sflow.sh")
-            logging.info("Starting sflowtool to record monitoring data to: %s" % output_path)
+            logger.info("Starting sFlow monitoring")
+            logger.info("Creating sFlow monitoring instances in the ovs switches")
+            run_script("set_ovs_sflow.sh", logger.info, logger.error)
+            logger.info("Starting sflowtool to record monitoring data to: %s" % output_path)
             self.output_file = open(pj(output_path, self.csv_filename), 'w')
             self.sflowtool_proc = Popen([self.sflowtool_cmd, "-k", "-L", self.sflow_keys_to_monitor],
                                         stderr=STDOUT, stdout=self.output_file)
         else:
-            logging.error("Monitoring is already running")
+            logger.error("Monitoring is already running")
 
     def stop_monitoring(self):
         if self.sflowtool_proc is not None:
-            logging.info("Stopping sflowtool")
+            logger.info("Stopping sflowtool")
             self.sflowtool_proc.terminate()
             self.output_file.close()
         else:
-            logging.error("No monitoring running to stop")
+            logger.error("No monitoring running to stop")

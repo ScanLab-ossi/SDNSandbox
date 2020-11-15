@@ -8,6 +8,9 @@ from os.path import join as pj
 from sdnsandbox.util import countdown, get_interfaces
 
 
+logger = logging.getLogger(__name__)
+
+
 class Runner(object):
     def __init__(self, topology, controller, load_generator, monitor, output_dir, ping_all_full=False):
         self.net = Mininet(topo=topology, controller=lambda unneeded: controller, link=TCLink)
@@ -27,19 +30,19 @@ class Runner(object):
     def save_monitoring_data_and_stop(self):
         self.monitor.stop_monitoring()
         self.load_generator.stop_receivers()
-        logging.info("Stopping the network...")
+        logger.info("Stopping the network...")
         self.net.stop()
 
     def run_network(self):
         """Create network and start it"""
         self.net.start()
 
-        logging.info("Waiting for the controller to finish network setup...")
-        countdown(logging.info, 3)
+        logger.info("Waiting for the controller to finish network setup...")
+        countdown(logger.info, 3)
 
         dumpNetConnections(self.net)
         if self.ping_all_full:
-            logging.info("PingAll to make sure everything's OK")
+            logger.info("PingAll to make sure everything's OK")
             self.net.pingAllFull()
         return self.net
 

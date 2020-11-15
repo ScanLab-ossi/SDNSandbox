@@ -59,13 +59,13 @@ def _calculate_latency(lat_src, long_src, lat_dst, long_dst):
     return (distance * 1000) / optical_fibre_lightspeed_m_per_millisec
 
 
-def run_script(script_name):
+def run_script(script_name, info_print, err_print):
     script_path = resource_filename('sdnsandbox', pj("scripts", script_name))
     result = run(script_path, universal_newlines=True, stdout=PIPE, stderr=PIPE)
     if result.stdout:
-        logging.info(result.stdout)
+        info_print(result.stdout)
     if result.stderr:
-        logging.error(result.stderr)
+        err_print(result.stderr)
     result.check_returncode()
 
 

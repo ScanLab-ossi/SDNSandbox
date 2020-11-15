@@ -14,6 +14,9 @@ class Protocol(Enum):
     TCP = 1
 
 
+logger = logging.getLogger(__name__)
+
+
 class LoadGeneratorFactory(object):
     @staticmethod
     def create(load_generator_conf):
@@ -66,7 +69,7 @@ class DITGLoadGenerator(LoadGenerator):
         self.pps_wavelength = pps_wavelength
 
     def start_receivers(self, network, output_path):
-        logging.info("Adding ITGRecv to all network hosts")
+        logger.info("Adding ITGRecv to all network hosts")
         logs_path = pj(output_path, "logs", "receivers")
         makedirs(logs_path)
         itg_recv_cmd = 'while [ 1 ]; do ' \
@@ -82,7 +85,7 @@ class DITGLoadGenerator(LoadGenerator):
             self.receivers.append(self.Receiver(itg_recv, logfile))
 
     def run_senders(self, network, output_path):
-        logging.info("Running ITGSenders")
+        logger.info("Running ITGSenders")
         logs_path = pj(output_path, "logs", "senders")
         makedirs(logs_path)
         host_addresses = [host.IP() for host in network.hosts]
@@ -98,7 +101,7 @@ class DITGLoadGenerator(LoadGenerator):
                 try:
                     sender.process.wait(timeout=timeout)
                 except TimeoutExpired as e:
-                    logging.error("Sender timed out: %s", str(e))
+                    logger.error("Sender timed out: %s", str(e))
                 sender.logfile.close()
             self.senders = []
 
@@ -115,7 +118,7 @@ class DITGLoadGenerator(LoadGenerator):
         return host_senders
 
     def stop_receivers(self):
-        logging.info("Killing ITGRecv(s)...")
+        logger.info("Killing ITGRecv(s)...")
         for receiver in self.receivers:
             receiver.process.terminate()
             receiver.logfile.close()

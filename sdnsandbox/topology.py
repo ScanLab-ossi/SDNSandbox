@@ -9,6 +9,9 @@ from sdnsandbox.util import remove_bad_chars, calculate_geodesic_latency
 Node = namedtuple('Node', 'Name, Latitude, Longitude')
 
 
+logger = logging.getLogger(__name__)
+
+
 class TopologyFactory(object):
     @staticmethod
     def create(topology_conf):
@@ -85,16 +88,16 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
                 if d.attrib['key'] == node_latitude_name:
                     node_latitude_value = d.text
             if node_name_value == 'None':
-                logging.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
+                logger.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
                 continue
             if '' in [node_name_value, node_latitude_value, node_longitude_value]:
-                logging.debug(
+                logger.debug(
                     "Found empty string as node value (name/lat/long) for index=%s - invalidating and skipping",
                     node_index_value)
                 continue
             id_node_map[node_index_value] = Node(node_name_value, node_latitude_value, node_longitude_value)
-            logging.debug("Added for key=%s Node=%s", node_index_value, id_node_map[node_index_value])
-        logging.info("Found a total of %d valid nodes", len(id_node_map))
+            logger.debug("Added for key=%s Node=%s", node_index_value, id_node_map[node_index_value])
+        logger.info("Found a total of %d valid nodes", len(id_node_map))
         return id_node_map
 
     @staticmethod
@@ -126,7 +129,7 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
             src_id = e.attrib['source']
             dst_id = e.attrib['target']
             if not {src_id, dst_id}.issubset(nodes.keys()):
-                logging.debug("Missing edge node id in valid node list - skipping Edge=%s", e.attrib)
+                logger.debug("Missing edge node id in valid node list - skipping Edge=%s", e.attrib)
                 continue
             latency = latency_function(float(nodes[src_id].Latitude),
                                        float(nodes[src_id].Longitude),
