@@ -4,7 +4,7 @@ from collections import namedtuple
 from math import pi, sin
 from os import makedirs
 from os.path import join as pj
-from subprocess import STDOUT
+from subprocess import STDOUT, TimeoutExpired
 from time import monotonic
 from enum import Enum
 
@@ -95,7 +95,10 @@ class DITGLoadGenerator(LoadGenerator):
             for sender in self.senders:
                 time_passed = monotonic() - sender.start_time
                 timeout = self.period_duration_seconds - time_passed
-                sender.process.wait(timeout=timeout)
+                try:
+                    sender.process.wait(timeout=timeout)
+                except TimeoutExpired as e:
+                    logging.error("Sender timed out: %s", str(e))
                 sender.logfile.close()
             self.senders = []
 
