@@ -69,7 +69,7 @@ def run_script(script_name):
     result.check_returncode()
 
 
-def get_interfaces(ip_a_getter=lambda: run("ip a", universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
+def get_interfaces(ip_a_getter=lambda: run(["ip", "a"], universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
     ip_a_out = ip_a_getter()
     interfaces = {}
     for line in ip_a_out.splitlines():
