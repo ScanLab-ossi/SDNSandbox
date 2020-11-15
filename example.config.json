@@ -24,6 +24,7 @@
     "pps_wavelength": 25
   },
   "monitor": {
-    "type": "sflow"
+    "type": "sflow",
+    "csv_filename": "sflow.csv"
   }
 }
