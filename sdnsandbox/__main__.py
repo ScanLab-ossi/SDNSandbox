@@ -47,9 +47,9 @@ controller_ip = gethostbyname_ex(controller_conf['ip'])[2][0]
 controller = RemoteController('controller', ip=controller_ip, port=controller_conf["port"])
 load_generator = LoadGeneratorFactory.create(load_generator_conf)
 monitor = MonitorFactory().create(monitor_conf)
-runner = Runner(topology, controller, load_generator, monitor, args.output_dir)
+runner = Runner(topology, controller, load_generator, monitor, args.output_dir, ping_all_full=runner_conf['pingAllFull'])
 try:
-    runner.run(ping_all_full=runner_conf['pingAllFull'])
+    runner.run()
     runner.save_monitoring_data_and_stop()
 except KeyboardInterrupt:
     logging.fatal("Interrupted during experiment... Attempting to clean up and exiting...")
