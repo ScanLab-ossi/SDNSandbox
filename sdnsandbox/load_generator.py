@@ -114,6 +114,7 @@ class DITGLoadGenerator(LoadGenerator):
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
             logfile = open(log_path, 'a')
             start_time = monotonic()
+            logfile.write(str(start_time) + ": Starting ITGSend!\n")
             itg_send = host.popen(itg_send_cmd, stderr=STDOUT, stdout=logfile)
             host_senders.append(self.Sender(itg_send, start_time, logfile))
         return host_senders
