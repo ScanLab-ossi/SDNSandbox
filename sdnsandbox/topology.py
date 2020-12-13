@@ -136,5 +136,5 @@ class ITZTopologyFactory(SDNSandboxTopologyFactory):
                                        float(nodes[dst_id].Longitude))
             src_name = nodes[src_id].Name
             dst_name = nodes[dst_id].Name
-            switch_links.append(Link(src_id, src_name, dst_id, dst_name, str(latency)))
+            switch_links.append(Link(src_id, src_name, dst_id, dst_name, '{:.6f}'.format(latency)))
         return switch_links
