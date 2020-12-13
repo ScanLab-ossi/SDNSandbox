@@ -1,10 +1,11 @@
 import logging
 from abc import ABC, abstractmethod
+from asyncio import sleep
 from collections import namedtuple
 from math import pi, sin
 from os import makedirs
 from os.path import join as pj
-from subprocess import STDOUT, TimeoutExpired
+from subprocess import STDOUT
 from time import monotonic
 from enum import Enum
 
@@ -94,17 +95,21 @@ class DITGLoadGenerator(LoadGenerator):
                 dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
-            # TODO: make sure the sender filled the whole duration with packets (rerun after crash)?
+            success, failure = 0, 0
             for sender in self.senders:
                 time_passed = monotonic() - sender.start_time
-                timeout = self.period_duration_seconds - time_passed
-                try:
-                    if sender.process.poll() is None:
-                        sender.process.wait(timeout=timeout)
-                except TimeoutExpired as e:
-                    logger.error("Sender timed out: %s", str(e))
+                sleep(self.period_duration_seconds - time_passed)
+                if sender.process.poll() is None:
+                    logger.debug("Sender timed out and will be killed: %s", sender.process.args)
+                    # forcibly stop senders that took too long, ignoring crashes
+                    sender.process.kill()
+                    failure += 1
+                else:
+                    success += 1
                 sender.logfile.close()
             self.senders = []
+            logger.info("For period=%d we had %d successfully completed senders and %d failed senders",
+                        period, success, failure)
 
     def run_host_senders(self, host, dest, logs_path, period):
         host_senders = []
