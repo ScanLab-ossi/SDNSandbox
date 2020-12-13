@@ -1,6 +1,9 @@
 import io
 from unittest import TestCase
-from sdnsandbox.util import countdown, calculate_geodesic_latency, _calculate_latency, get_interfaces
+from sdnsandbox.util import countdown,\
+                            calculate_geodesic_latency,\
+                            calculate_manual_geodesic_latency,\
+                            get_inter_switch_port_interfaces
 
 ip_a_output = '''1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
@@ -12,33 +15,31 @@ ip_a_output = '''1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNK
     link/ether 86:57:62:6c:06:1b brd ff:ff:ff:ff:ff:ff
 '''
 
-interfaces = {'1': 'lo',
-              '2': 's0-eth1',
-              '3': 's3-eth2@s0-eth3'}
+relevant_interfaces = {'3': 's3-eth2@s0-eth3'}
 
 
 class TestUtil(TestCase):
     def test_calculate_geodesic_latency_zero_distance(self):
         latency = calculate_geodesic_latency(0, 0, 0, 0)
-        self.assertEqual(latency, 0.0)
+        self.assertEqual(0.0, latency)
 
     def test_calculate_geodesic_latency_microsecond_accuracy(self):
         latency = calculate_geodesic_latency(0, 0, 10, 10)
-        self.assertAlmostEqual(latency, 7.556, delta=0.001)
+        self.assertAlmostEqual(7.556, latency, delta=0.001)
 
-    def test___calculate_latency_zero_distance(self):
-        latency = _calculate_latency(0, 0, 0, 0)
-        self.assertEqual(latency, 0.0)
+    def test_calculate_manual_geodesic_latency_zero_distance(self):
+        latency = calculate_manual_geodesic_latency(0, 0, 0, 0)
+        self.assertEqual(0.0, latency)
 
-    def test___calculate_latency_microsecond_accuracy(self):
-        latency = _calculate_latency(0, 0, 10, 10)
-        self.assertAlmostEqual(latency, 7.581, delta=0.001)
+    def test_calculate_manual_geodesic_latency_microsecond_accuracy(self):
+        latency = calculate_manual_geodesic_latency(0, 0, 10, 10)
+        self.assertAlmostEqual(7.581, latency, delta=0.001)
 
     def test_countdown(self):
         output = io.StringIO()
         countdown(output.write, 3, delay_func=lambda a: a)
-        self.assertEqual(output.getvalue(), '00:0300:0200:01Done!')
+        self.assertEqual('00:0300:0200:01Done!', output.getvalue())
 
-    def test_get_interfaces(self):
-        res = get_interfaces(ip_a_getter=lambda: ip_a_output)
-        self.assertEqual(res, interfaces)
+    def test_get_inter_switch_port_interfaces(self):
+        res = get_inter_switch_port_interfaces(ip_a_getter=lambda: ip_a_output)
+        self.assertEqual(relevant_interfaces, res)

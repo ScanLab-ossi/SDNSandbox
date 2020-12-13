@@ -19,19 +19,19 @@ class TopologyFactory(object):
             with urlopen(topology_conf["graphml"]) as response:
                 graphml = response.read().decode("utf-8")
                 bandwidth = topology_conf["bandwidth"]
-                return ITZTopologyBuilder(graphml, bandwidth["host_mbps"], bandwidth["switch_mbps"]).build()
+                return ITZTopologyFactory(graphml, bandwidth["host_mbps"], bandwidth["switch_mbps"]).create()
         else:
             raise ValueError("Unknown topology type=%s" % topology_conf["type"])
 
 
-class SDNSandboxTopologyBuilder(object):
+class SDNSandboxTopologyFactory(object):
     def __init__(self, switch_ids, switch_links, host_bandwidth, switch_bandwidth):
         self.switch_ids = switch_ids
         self.switch_links = switch_links
         self.host_bandwidth = host_bandwidth
         self.switch_bandwidth = switch_bandwidth
 
-    def build(self):
+    def create(self):
         topo = Topo()
         for switch_id in self.switch_ids:
             # create switch
@@ -46,18 +46,17 @@ class SDNSandboxTopologyBuilder(object):
         return topo
 
 
-class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
+class ITZTopologyFactory(SDNSandboxTopologyFactory):
     def __init__(self, graphml, host_bandwidth, switch_bandwidth):
-        self.graphml = graphml
-        self.host_bandwidth = host_bandwidth
-        self.switch_bandwidth = switch_bandwidth
+        switch_ids, switch_links = self.extract_switches_and_links_from_graphml(graphml)
+        super().__init__(switch_ids, switch_links, host_bandwidth, switch_bandwidth)
 
-    def build(self):
-        edge_set, node_set, index_values_set = self.get_graph_sets_from_graphml(self.graphml)
-        id_node_dict = self.get_id_node_map(node_set, index_values_set)
-        switch_links = self.get_switch_links(edge_set, id_node_dict)
-        super().__init__(id_node_dict.keys(), switch_links, self.host_bandwidth, self.switch_bandwidth)
-        return super().build()
+    @staticmethod
+    def extract_switches_and_links_from_graphml(graphml):
+        edge_set, node_set, index_values_set = ITZTopologyFactory.get_graph_sets_from_graphml(graphml)
+        id_node_dict = ITZTopologyFactory.get_id_node_map(node_set, index_values_set)
+        switch_links = ITZTopologyFactory.get_switch_links(edge_set, id_node_dict)
+        return id_node_dict.keys(), switch_links
 
     @staticmethod
     def get_graph_sets_from_graphml(graphml, ns="{http://graphml.graphdrawing.org/xmlns}"):
@@ -71,7 +70,7 @@ class ITZTopologyBuilder(SDNSandboxTopologyBuilder):
     @staticmethod
     def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xmlns}"):
         node_label_name, node_latitude_name, node_longitude_name = \
-            ITZTopologyBuilder.get_names_in_graphml(index_values)
+            ITZTopologyFactory.get_names_in_graphml(index_values)
         id_node_map = {}
         for n in nodes:
             node_name_value = ''

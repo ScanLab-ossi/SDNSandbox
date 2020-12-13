@@ -59,10 +59,10 @@ monitor = MonitorFactory().create(monitor_conf)
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir, ping_all_full=runner_conf['pingAllFull'])
 try:
     runner.run()
-    runner.save_monitoring_data_and_stop()
+    runner.stop_and_save_monitoring_data()
 except KeyboardInterrupt:
     logging.fatal("Interrupted during experiment... Attempting to clean up and exiting...")
-    runner.save_monitoring_data_and_stop()
+    runner.stop_and_save_monitoring_data()
 finally:
     logging.info('The experiment files can be found in %s', args.output_dir)
     logging.info('NOTE: If the experiment was run inside a Docker container, the location depends on the volume mount')

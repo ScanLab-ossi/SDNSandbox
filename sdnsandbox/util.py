@@ -5,6 +5,7 @@ from geopy.distance import geodesic
 from subprocess import run, PIPE
 from pkg_resources import resource_filename
 from os.path import join as pj
+from re import fullmatch
 
 lightspeed_m_per_millisec = 299792.458
 optical_fibre_refraction_index = 1.4475
@@ -34,7 +35,7 @@ def calculate_geodesic_latency(lat_src, long_src, lat_dst, long_dst):
     return dist / optical_fibre_lightspeed_m_per_millisec
 
 
-def _calculate_latency(lat_src, long_src, lat_dst, long_dst):
+def calculate_manual_geodesic_latency(lat_src, long_src, lat_dst, long_dst):
     """This is here for backwards compatibility.
        CALCULATION EXPLANATION
 
@@ -69,7 +70,10 @@ def run_script(script_name, info_print, err_print):
     result.check_returncode()
 
 
-def get_interfaces(ip_a_getter=lambda: run(["ip", "a"], universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
+def get_inter_switch_port_interfaces(port_re="s[0-9]+-eth[0-9]+@s[0-9]+-eth[0-9]+",
+                                     ip_a_getter=
+                                     lambda:
+                                     run(["ip", "a"], universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
     ip_a_out = ip_a_getter()
     interfaces = {}
     for line in ip_a_out.splitlines():
@@ -77,5 +81,11 @@ def get_interfaces(ip_a_getter=lambda: run(["ip", "a"], universal_newlines=True,
         if line[0] == ' ':
             continue
         intf_split = line.split(':')
-        interfaces[intf_split[0]] = intf_split[1].strip()
+        intf_num = intf_split[0]
+        intf_name = intf_split[1].strip()
+        logging.debug("found interface #%d: \n%s", intf_num, intf_name)
+        if fullmatch(port_re, intf_name):
+            interfaces[intf_num] = intf_name
+        else:
+            logging.debug("interface doesn't have two parts, irrelevant - dropped...")
     return interfaces

@@ -25,6 +25,9 @@
   },
   "monitor": {
     "type": "sflow",
-    "csv_filename": "sflow.csv"
+    "data_key": "ifInOctets",
+    "normalize_by": 1048576,
+    "csv_filename": "sflow.csv",
+    "interfaces_filename": "interfaces.json"
   }
 }
