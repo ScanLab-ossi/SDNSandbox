@@ -6,7 +6,7 @@ from math import pi, sin
 from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
-from time import monotonic
+from time import monotonic, localtime
 from enum import Enum
 
 
@@ -122,7 +122,7 @@ class DITGLoadGenerator(LoadGenerator):
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
             logfile = open(log_path, 'a')
             start_time = monotonic()
-            logfile.write(str(start_time) + ": Starting ITGSend!\n")
+            logfile.write(str(localtime()) + ": Starting ITGSend!\n")
             itg_send = host.popen(itg_send_cmd, stderr=STDOUT, stdout=logfile)
             host_senders.append(self.Sender(itg_send, start_time, logfile))
         return host_senders
