@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from asyncio import sleep
+from time import sleep
 from collections import namedtuple
 from math import pi, sin
 from os import makedirs
