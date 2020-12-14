@@ -24,7 +24,7 @@ class Runner(object):
         self.load_generator.run_senders(self.net, self.output_dir)
 
     def stop_and_save_monitoring_data(self):
-        self.monitor.stop_monitoring_and_save()
+        self.monitor.stop_monitoring_and_save(self.output_dir)
         self.load_generator.stop_receivers()
         logger.info("Stopping the network...")
         self.net.stop()

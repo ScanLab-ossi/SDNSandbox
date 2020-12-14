@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import logging
-from datetime import datetime
 from json import dump
 import pandas as pd
 
@@ -8,6 +7,7 @@ from sdnsandbox.util import run_script, get_inter_switch_port_interfaces
 from subprocess import Popen, STDOUT
 from shutil import which
 from os.path import join as pj
+from os import remove
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,8 @@ class MonitorFactory(object):
             return SFlowMonitor(monitor_conf["data_key"],
                                 monitor_conf["normalize_by"],
                                 monitor_conf["csv_filename"],
-                                monitor_conf.get("interfaces_filename"))
+                                monitor_conf.get("interfaces_filename"),
+                                monitor_conf.get("hd5_filename", monitor_conf["csv_filename"]+".hd5"))
         else:
             raise ValueError("Unknown monitor type=%s" % monitor_conf["type"])
 
@@ -31,7 +32,7 @@ class Monitor(ABC):
         pass
 
     @abstractmethod
-    def stop_monitoring_and_save(self):
+    def stop_monitoring_and_save(self, output_path):
         pass
 
 
@@ -41,7 +42,7 @@ class SFlowMonitor(Monitor):
     sflow_intf_index_key = "ifIndex"
     sflowtool_cmd = "sflowtool"
 
-    def __init__(self, data_key, normalize_by, csv_filename, interfaces_filename):
+    def __init__(self, data_key, normalize_by, csv_filename, interfaces_filename, hd5_filename, pandas_processing=True):
         if which(self.sflowtool_cmd) is None:
             raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % self.sflowtool_cmd)
         self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, data_key]
@@ -50,7 +51,9 @@ class SFlowMonitor(Monitor):
         self.interfaces_filename = interfaces_filename
         self.sflowtool_proc = None
         self.output_file = None
+        self.hd5_filename = hd5_filename
         self.interfaces = None
+        self.samples_processor = self.get_samples_pandas if pandas_processing else self.get_samples
 
     def start_monitoring(self, output_path):
         if self.sflowtool_proc is None:
@@ -69,38 +72,60 @@ class SFlowMonitor(Monitor):
         else:
             logger.error("Monitoring is already running")
 
-    def stop_monitoring_and_save(self):
-        samples = {}
+    def stop_monitoring_and_save(self, output_path, pandas_processing=True, delete_csv=True):
         if self.sflowtool_proc is not None:
             logger.info("Stopping sflowtool")
             self.sflowtool_proc.terminate()
             self.sflowtool_proc = None
             self.output_file.seek(0)
-            samples = self.get_normalized_samples(self.output_file, self.normalize_by, self.interfaces)
-            pd.DataFrame.from_dict(samples).to_hdf(self.output_file.name+".hd5")
+            samples_df = self.samples_processor(self.output_file,
+                                                self.sflow_keys_to_monitor,
+                                                self.normalize_by,
+                                                self.interfaces)
+            samples_df.to_hdf(pj(output_path, self.hd5_filename))
             self.interfaces = None
             self.output_file.close()
+            if delete_csv:
+                remove(self.output_file.name)
             self.output_file = None
+            return samples_df
         else:
             logger.error("No monitoring running to stop")
-        return samples
 
     @staticmethod
-    def get_normalized_samples(file, normalize_by, interfaces):
+    def get_samples_pandas(file, keys, interfaces, normalize_by=None):
+        samples_df = pd.read_csv(file, names=keys, index_col=[0, 1])
+        samples_df = samples_df.unstack()[keys[2]]
+        interfaces_keys = {int(k) for k in interfaces.keys()}
+        port_drop_list = list(filter(lambda k: k not in interfaces_keys, samples_df.keys()))
+        samples_df.drop(columns=port_drop_list, inplace=True)
+        samples_df.rename(lambda k: interfaces[str(k)], axis=1, inplace=True)
+        samples_df.sort_index(axis=1, inplace=True)
+        return samples_df if not normalize_by else samples_df / normalize_by
+
+    @staticmethod
+    def get_samples(file, keys, interfaces, normalize_by=None):
         samples = {}
         for line in file:
             # TODO: find a way to make this less brittle
             when, where, what = line.split(',')
-            when = datetime.fromtimestamp(when)
+            when = int(when)
             # use data only from the relevant interfaces
             if where in interfaces:
                 where = interfaces[where]
-                what = int(what) / float(normalize_by)
+                if normalize_by:
+                    what = int(what) / float(normalize_by)
+                else:
+                    what = int(what)
                 if when in samples:
                     samples[when][where] = what
                 else:
                     samples[when] = {where: what}
-        return samples
+        samples_df = pd.DataFrame.from_dict(samples, orient='index')
+        samples_df.rename_axis(keys[0], inplace=True)
+        samples_df.rename_axis(keys[1], axis=1, inplace=True)
+        samples_df.sort_index(axis=1, inplace=True)
+        return samples_df
 
     @staticmethod
     def get_interfaces(save_json_to=None):
