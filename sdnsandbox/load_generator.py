@@ -99,10 +99,13 @@ class DITGLoadGenerator(LoadGenerator):
             for sender in self.senders:
                 time_passed = monotonic() - sender.start_time
                 sleep(self.period_duration_seconds - time_passed)
-                if sender.process.poll() is None:
+                return_code = sender.process.poll()
+                if return_code is None:
                     logger.debug("Sender timed out and will be killed: %s", sender.process.args)
                     # forcibly stop senders that took too long, ignoring crashes
                     sender.process.kill()
+                    failure += 1
+                elif return_code != 0:
                     failure += 1
                 else:
                     success += 1
