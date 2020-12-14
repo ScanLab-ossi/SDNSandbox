@@ -80,8 +80,8 @@ class SFlowMonitor(Monitor):
             self.output_file.seek(0)
             samples_df = self.samples_processor(self.output_file,
                                                 self.sflow_keys_to_monitor,
-                                                self.normalize_by,
-                                                self.interfaces)
+                                                self.interfaces,
+                                                normalize_by=self.normalize_by)
             samples_df.to_hdf(pj(output_path, self.hd5_filename))
             self.interfaces = None
             self.output_file.close()
