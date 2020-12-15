@@ -84,15 +84,18 @@ class SFlowMonitor(Monitor):
             logger.info("Stopping %s", self.config.sflowtool_cmd)
             self.sflowtool_proc.terminate()
             self.sflowtool_proc = None
+            logger.info("Processing sFlow samples...")
             self.output_file.seek(0)
             samples_df = self.samples_processor(self.output_file,
                                                 self.sflow_keys_to_monitor,
                                                 self.interfaces,
                                                 normalize_by=self.config.normalize_by)
+            logger.info("Saving samples as %s", self.config.hd5_filename)
             samples_df.to_hdf(pj(output_path, self.config.hd5_filename), key=self.hd5_key)
             self.interfaces = None
             self.output_file.close()
             if delete_csv:
+                logger.info("Deleting original sFlow CSV %s", self.output_file.name)
                 remove(self.output_file.name)
             self.output_file = None
             return samples_df
