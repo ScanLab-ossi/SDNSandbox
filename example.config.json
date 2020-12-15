@@ -18,8 +18,8 @@
     "type": "DITG",
     "protocol": "UDP",
     "periods": 1200,
-    "period_seconds": 30,
-    "pps_baseline": 150,
+    "period_duration_seconds": 30,
+    "pps_base_level": 150,
     "pps_amplitude": 100,
     "pps_wavelength": 25
   },

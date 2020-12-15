@@ -1,19 +1,30 @@
 import logging
 from abc import ABC, abstractmethod
-from time import sleep
 from collections import namedtuple
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from math import pi, sin
 from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
 from time import monotonic
-from datetime import datetime
-from enum import Enum
+from time import sleep
+import dacite
 
 
 class Protocol(Enum):
     UDP = 0
     TCP = 1
+
+    @staticmethod
+    def from_str(protocol: str):
+        if protocol == "UDP":
+            return Protocol.UDP
+        elif protocol == "TCP":
+            return Protocol.TCP
+        else:
+            raise ValueError("Unknown protocol=%s" % protocol)
 
 
 logger = logging.getLogger(__name__)
@@ -23,18 +34,10 @@ class LoadGeneratorFactory(object):
     @staticmethod
     def create(load_generator_conf):
         if load_generator_conf["type"] == "DITG":
-            if load_generator_conf["protocol"] == "UDP":
-                protocol = Protocol.UDP
-            elif load_generator_conf["protocol"] == "TCP":
-                protocol = Protocol.TCP
-            else:
-                raise ValueError("Unknown protocol=%s" % load_generator_conf["protocol"])
-            return DITGLoadGenerator(protocol,
-                                     load_generator_conf["periods"],
-                                     load_generator_conf["period_seconds"],
-                                     load_generator_conf["pps_baseline"],
-                                     load_generator_conf["pps_amplitude"],
-                                     load_generator_conf["pps_wavelength"])
+
+            config = dacite.from_dict(data_class=DITGConfig, data=load_generator_conf,
+                                      config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p)}))
+            return DITGLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
 
@@ -57,18 +60,24 @@ class LoadGenerator(ABC):
         pass
 
 
+@dataclass
+class DITGConfig:
+    protocol: Protocol
+    periods: int
+    period_duration_seconds: int
+    pps_base_level: int
+    pps_amplitude: int
+    pps_wavelength: int
+    warmup_seconds: int = 1
+
+
 class DITGLoadGenerator(LoadGenerator):
     Receiver = namedtuple("Receiver", "process, logfile")
     Sender = namedtuple("Sender", "process, start_time, logfile")
 
-    def __init__(self, protocol, periods, period_duration_seconds, pps_base_level, pps_amplitude, pps_wavelength):
+    def __init__(self, config: DITGConfig):
         super().__init__()
-        self.protocol = protocol
-        self.periods = periods
-        self.period_duration_seconds = period_duration_seconds
-        self.pps_base_level = pps_base_level
-        self.pps_amplitude = pps_amplitude
-        self.pps_wavelength = pps_wavelength
+        self.config = config
 
     def start_receivers(self, network, output_path):
         logger.info("Adding ITGRecv to all network hosts")
@@ -91,7 +100,7 @@ class DITGLoadGenerator(LoadGenerator):
         logs_path = pj(output_path, "logs", "senders")
         makedirs(logs_path)
         host_addresses = [host.IP() for host in network.hosts]
-        for period in range(self.periods):
+        for period in range(self.config.periods):
             for host_index, host in enumerate(network.hosts):
                 dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
@@ -99,7 +108,7 @@ class DITGLoadGenerator(LoadGenerator):
             success, failure = 0, 0
             for sender in self.senders:
                 time_passed = monotonic() - sender.start_time
-                timeout = self.period_duration_seconds - time_passed
+                timeout = self.config.period_duration_seconds - time_passed
                 if timeout > 0.0:
                     sleep(timeout)
                 return_code = sender.process.poll()
@@ -144,35 +153,37 @@ class DITGLoadGenerator(LoadGenerator):
 
     def calculate_send_opts(self, period, dest):
         send_opts = {}
+        # allow sender warmup period
+        duration_ms = (self.config.period_duration_seconds-self.config.warmup_seconds)*1000
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
-        period_pps = self.pps_base_level + int(self.pps_amplitude*sin(2*pi*period/self.pps_wavelength))
+        period_pps = self.config.pps_base_level + int(self.config.pps_amplitude*sin(2*pi*period/self.config.pps_wavelength))
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
         # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
-        if self.protocol == Protocol.UDP:
+        if self.config.protocol == Protocol.UDP:
             # To get a similar distribution with UDP:
             # Constant packet size - 40B 30%
             send_opts['send_40bytes'] = '-a %s -T UDP -t %d -c 40 -C %d' % (dest,
-                                                                            self.period_duration_seconds*1000,
+                                                                            duration_ms,
                                                                             int(0.3 * period_pps))
             # Normal Distribution for packet sizes - 55%
             send_opts['send_normal'] = '-a %s -T UDP -t %d -n 576, 190 -C %d' % (dest,
-                                                                                 self.period_duration_seconds*1000,
+                                                                                 duration_ms,
                                                                                  int(0.55 * period_pps))
             # Constant packet size - 1500B - 15%
             send_opts['send_1500B'] = '-a %s -T UDP -t %d -c 1500 -C %d' % (dest,
-                                                                            self.period_duration_seconds*1000,
+                                                                            duration_ms,
                                                                             int(0.15 * period_pps))
-        elif self.protocol == Protocol.TCP:
+        elif self.config.protocol == Protocol.TCP:
             # To get a similar distribution with TCP (which has builtin 40B ACKs):
             # Normal distribution with [100 - (100 * 15 / (15 + 55))] = 78%
             send_opts['send_normal'] = '-a %s -T UDP -t %d -n 576, 190 -C %d' % (dest,
-                                                                                 self.period_duration_seconds*1000,
+                                                                                 duration_ms,
                                                                                  int(0.78 * period_pps))
             # Constant packet size - 1500B - 22%
             pps_high = int(0.15 * period_pps)
             send_opts['send_1500B'] = '-a %s -T UDP -t %d -c 1500 -C %d' % (dest,
-                                                                            self.period_duration_seconds*1000,
+                                                                            duration_ms,
                                                                             int(0.22 * period_pps))
         else:
             raise RuntimeError("Unknown protocol defined for senders!")
