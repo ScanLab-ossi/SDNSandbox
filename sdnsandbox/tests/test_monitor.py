@@ -1,10 +1,11 @@
+import json
 import unittest
 from os.path import abspath, dirname, join as pj
 from timeit import repeat as timeit
 
 import pandas as pd
 
-from sdnsandbox.monitor import SFlowMonitor
+from sdnsandbox.monitor import SFlowMonitor, MonitorFactory
 
 
 class MonitorTestCase(unittest.TestCase):
@@ -53,6 +54,22 @@ class MonitorTestCase(unittest.TestCase):
             return True
         except (AssertionError, ValueError, TypeError):
             return False
+
+    def test_create_sflow_monitor_from_example_config(self):
+        monitor_conf = json.loads('''{
+                        "type": "sflow",
+                        "data_key": "ifInOctets",
+                        "normalize_by": 1048576,
+                        "csv_filename": "sflow.csv",
+                        "interfaces_filename": "interfaces.json",
+                        "sflowtool_cmd": "git"
+                      }''')
+        monitor = MonitorFactory().create(monitor_conf)
+        self.assertIsInstance(monitor, SFlowMonitor)
+        self.assertEqual("ifInOctets", monitor.sflow_keys_to_monitor[2])
+        self.assertEqual(1048576, monitor.config.normalize_by)
+        self.assertEqual("sflow.csv", monitor.config.csv_filename)
+        self.assertEqual("interfaces.json", monitor.config.interfaces_filename)
 
     def test_get_samples_no_normalization_pandas(self):
         samples_df = SFlowMonitor.get_samples_pandas(self.sflow_csv,

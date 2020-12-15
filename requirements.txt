@@ -5,3 +5,5 @@ pandas==0.25.1
 tables==3.5.2
 geopy==2.0.0
 mininet
+dataclasses==0.8; python_version < '3.7'
+dacite==1.6.0

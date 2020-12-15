@@ -1,6 +1,10 @@
+import pathlib
 from abc import ABC, abstractmethod
 import logging
+from dataclasses import dataclass
 from json import dump
+
+import dacite
 import pandas as pd
 
 from sdnsandbox.util import run_script, get_inter_switch_port_interfaces
@@ -17,11 +21,8 @@ class MonitorFactory(object):
     @staticmethod
     def create(monitor_conf):
         if monitor_conf["type"] == "sflow":
-            return SFlowMonitor(monitor_conf["data_key"],
-                                monitor_conf["normalize_by"],
-                                monitor_conf["csv_filename"],
-                                monitor_conf.get("interfaces_filename"),
-                                monitor_conf.get("hd5_filename", monitor_conf["csv_filename"]+".hd5"))
+            config = dacite.from_dict(data_class=SFlowConfig, data=monitor_conf)
+            return SFlowMonitor(config)
         else:
             raise ValueError("Unknown monitor type=%s" % monitor_conf["type"])
 
@@ -36,53 +37,59 @@ class Monitor(ABC):
         pass
 
 
+@dataclass
+class SFlowConfig:
+    data_key: str
+    normalize_by: float
+    csv_filename: str = 'sflow.csv'
+    interfaces_filename: str = 'interfaces.json'
+    hd5_filename: str = 'sflow.hd5'
+    pandas_processing: bool = True
+    sflowtool_cmd: str = "sflowtool"
+
+
 class SFlowMonitor(Monitor):
     """A Monitor using an sFlow collector process and OvS-embedded sFlow monitoring"""
     sflow_time_key = "unixSecondsUTC"
     sflow_intf_index_key = "ifIndex"
-    sflowtool_cmd = "sflowtool"
+    hd5_key = "sdnsandbox_data"
 
-    def __init__(self, data_key, normalize_by, csv_filename, interfaces_filename, hd5_filename, pandas_processing=True):
-        if which(self.sflowtool_cmd) is None:
-            raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % self.sflowtool_cmd)
-        self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, data_key]
-        self.normalize_by = normalize_by
-        self.csv_filename = csv_filename
-        self.interfaces_filename = interfaces_filename
+    def __init__(self, config: SFlowConfig):
+        if which(config.sflowtool_cmd) is None:
+            raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % config.sflowtool_cmd)
+        self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, config.data_key]
+        self.config = config
         self.sflowtool_proc = None
         self.output_file = None
-        self.hd5_filename = hd5_filename
         self.interfaces = None
-        self.samples_processor = self.get_samples_pandas if pandas_processing else self.get_samples
+        self.samples_processor = self.get_samples_pandas if config.pandas_processing else self.get_samples
 
     def start_monitoring(self, output_path):
         if self.sflowtool_proc is None:
             logger.info("Starting sFlow monitoring")
             logger.info("Creating sFlow monitoring instances in the ovs switches")
             run_script("set_ovs_sflow.sh", logger.info, logger.error)
-            logger.info("Starting sflowtool to record monitoring data to: %s" % output_path)
-            self.output_file = open(pj(output_path, self.csv_filename), 'a+')
+            logger.info("Starting %s to record monitoring data to: %s" % (self.config.sflowtool_cmd, output_path))
+            self.output_file = open(pj(output_path, self.config.csv_filename), 'a+')
             keys = ','.join(self.sflow_keys_to_monitor)
-            self.sflowtool_proc = Popen([self.sflowtool_cmd, "-k", "-L", keys],
+            self.sflowtool_proc = Popen([self.config.sflowtool_cmd, "-k", "-L", keys],
                                         stderr=STDOUT, stdout=self.output_file)
-            if self.interfaces_filename:
-                self.interfaces = self.get_interfaces(save_json_to=pj(output_path, self.interfaces_filename))
-            else:
-                self.interfaces = self.get_interfaces()
+            self.interfaces = self.get_interfaces(save_json_to=pj(output_path, self.config.interfaces_filename))
+
         else:
             logger.error("Monitoring is already running")
 
     def stop_monitoring_and_save(self, output_path, pandas_processing=True, delete_csv=True):
         if self.sflowtool_proc is not None:
-            logger.info("Stopping sflowtool")
+            logger.info("Stopping %s", self.config.sflowtool_cmd)
             self.sflowtool_proc.terminate()
             self.sflowtool_proc = None
             self.output_file.seek(0)
             samples_df = self.samples_processor(self.output_file,
                                                 self.sflow_keys_to_monitor,
                                                 self.interfaces,
-                                                normalize_by=self.normalize_by)
-            samples_df.to_hdf(pj(output_path, self.hd5_filename))
+                                                normalize_by=self.config.normalize_by)
+            samples_df.to_hdf(pj(output_path, self.config.hd5_filename), key=self.hd5_key)
             self.interfaces = None
             self.output_file.close()
             if delete_csv:
