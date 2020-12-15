@@ -87,5 +87,5 @@ def get_inter_switch_port_interfaces(port_re="s[0-9]+-eth[0-9]+@s[0-9]+-eth[0-9]
         if fullmatch(port_re, intf_name):
             interfaces[intf_num] = intf_name
         else:
-            logging.debug("interface doesn't have two parts, irrelevant - dropped...")
+            logging.debug("Interface %s doesn't have inter switch port name, irrelevant - dropped...", intf_name)
     return interfaces
