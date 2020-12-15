@@ -68,7 +68,7 @@ class DITGConfig:
     pps_base_level: int
     pps_amplitude: int
     pps_wavelength: int
-    warmup_seconds: int = 1
+    warmup_seconds: int = 0
 
 
 class DITGLoadGenerator(LoadGenerator):
