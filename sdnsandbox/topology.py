@@ -1,15 +1,33 @@
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
 from urllib.request import urlopen
 from mininet.topo import Topo
-from collections import namedtuple
-from sdnsandbox.link import Link
 from xml.etree import ElementTree
 import logging
+from xml.etree.ElementTree import Element
+
 from sdnsandbox.util import remove_bad_chars, calculate_geodesic_latency
 
-Node = namedtuple('Node', 'Name, Latitude, Longitude')
-
-
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Switch:
+    ID: int
+    name: str
+
+
+@dataclass
+class Link:
+    first_id: int
+    second_id: int
+    mininet_latency: str
+
+
+@dataclass
+class ITZSwitch(Switch):
+    lat: float
+    long: float
 
 
 class TopologyFactory(object):
@@ -25,66 +43,78 @@ class TopologyFactory(object):
 
 
 class SDNSandboxTopologyFactory(object):
-    def __init__(self, switch_ids, switch_links, host_bandwidth, switch_bandwidth):
-        self.switch_ids = switch_ids
+    def __init__(self,
+                 switches: Dict[int, Switch],
+                 switch_links: List[Link],
+                 host_bandwidth: int,
+                 switch_bandwidth: int):
+        self.switches = switches
         self.switch_links = switch_links
         self.host_bandwidth = host_bandwidth
         self.switch_bandwidth = switch_bandwidth
 
-    def create(self):
+    def create(self) -> Topo:
         topo = Topo()
-        for switch_id in self.switch_ids:
+        for switch in self.switches.values():
             # create switch
-            switch_name = 's'+switch_id
-            switch = topo.addSwitch(switch_name)
+            topo_switch_name = 's'+str(switch.ID)
+            topo_switch = topo.addSwitch('s'+str(switch.ID))
             # create corresponding host
-            host = topo.addHost(switch_name+'-H')
+            host = topo.addHost(topo_switch_name+'-H')
             # link each switch and its host
-            topo.addLink(switch, host, bw=self.host_bandwidth)
+            topo.addLink(topo_switch, host, bw=self.host_bandwidth)
         for link in self.switch_links:
-            topo.addLink('s'+link.From_ID, 's'+link.To_ID, bw=self.switch_bandwidth, delay=link.Latency_in_ms+'ms')
+            topo.addLink('s'+str(link.first_id), 's'+str(link.second_id),
+                         bw=self.switch_bandwidth, delay=link.mininet_latency)
         return topo
 
 
 class ITZTopologyFactory(SDNSandboxTopologyFactory):
     def __init__(self, graphml, host_bandwidth, switch_bandwidth):
-        switch_ids, switch_links = self.extract_switches_and_links_from_graphml(graphml)
-        super().__init__(switch_ids, switch_links, host_bandwidth, switch_bandwidth)
+        switches, switch_links = self.extract_switches_and_links_from_graphml(graphml)
+        super().__init__(switches, switch_links, host_bandwidth, switch_bandwidth)
 
     @staticmethod
-    def extract_switches_and_links_from_graphml(graphml):
+    def extract_switches_and_links_from_graphml(graphml) -> Tuple[Dict[int, ITZSwitch], List[Link]]:
         edge_set, node_set, index_values_set = ITZTopologyFactory.get_graph_sets_from_graphml(graphml)
-        id_node_dict = ITZTopologyFactory.get_id_node_map(node_set, index_values_set)
-        switch_links = ITZTopologyFactory.get_switch_links(edge_set, id_node_dict)
-        return id_node_dict.keys(), switch_links
+        switches = ITZTopologyFactory.get_switches(node_set, index_values_set)
+        links = ITZTopologyFactory.get_links(edge_set, switches)
+        return switches, links
 
     @staticmethod
-    def get_graph_sets_from_graphml(graphml, ns="{http://graphml.graphdrawing.org/xmlns}"):
+    def get_graph_sets_from_graphml(graphml, ns="{http://graphml.graphdrawing.org/xmlns}") \
+            -> Tuple[List[Element], List[Element], List[Element]]:
         root_element = ElementTree.fromstring(graphml)
         graph_element = root_element.find(ns + 'graph')
-        index_values = root_element.findall(ns + 'key')
-        nodes = graph_element.findall(ns + 'node')
-        edges = graph_element.findall(ns + 'edge')
-        return edges, nodes, index_values
+        if graph_element:
+            index_values = root_element.findall(ns + 'key')
+            nodes = graph_element.findall(ns + 'node')
+            edges = graph_element.findall(ns + 'edge')
+            return edges, nodes, index_values
+        else:
+            raise RuntimeError("Missing graph element in graphml file")
 
     @staticmethod
-    def get_id_node_map(nodes, index_values, ns="{http://graphml.graphdrawing.org/xmlns}"):
+    def get_switches(raw_nodes: List[Element],
+                     index_values: List[Element],
+                     ns="{http://graphml.graphdrawing.org/xmlns}")\
+            -> Dict[int, ITZSwitch]:
         node_label_name, node_latitude_name, node_longitude_name = \
             ITZTopologyFactory.get_names_in_graphml(index_values)
-        id_node_map = {}
-        for n in nodes:
+        switches = {}
+        for n in raw_nodes:
             node_name_value = ''
             node_longitude_value = ''
             node_latitude_value = ''
-            node_index_value = n.attrib['id']
+            node_index_value = int(n.attrib['id'])
             data_set = n.findall(ns + 'data')
             for d in data_set:
                 if d.attrib['key'] == node_label_name:
                     # get rid of all bad characters from names so they can be used later without issues
                     node_name_value = remove_bad_chars(d.text, bad_chars="\\/ `*_{}[]()>#+-.,!$?'")
-                if d.attrib['key'] == node_longitude_name:
+                if d.attrib['key'] == node_longitude_name and d.text:
                     node_longitude_value = d.text
-                if d.attrib['key'] == node_latitude_name:
+                if d.attrib['key'] == node_latitude_name and d.text:
                     node_latitude_value = d.text
             if node_name_value == 'None':
                 logger.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
@@ -94,10 +124,13 @@ class ITZTopologyFactory(SDNSandboxTopologyFactory):
                     "Found empty string as node value (name/lat/long) for index=%s - invalidating and skipping",
                     node_index_value)
                 continue
-            id_node_map[node_index_value] = Node(node_name_value, node_latitude_value, node_longitude_value)
-            logger.debug("Added for key=%s Node=%s", node_index_value, id_node_map[node_index_value])
-        logger.info("Found a total of %d valid nodes", len(id_node_map))
-        return id_node_map
+            switches[node_index_value] = ITZSwitch(ID=node_index_value,
+                                                   name=node_name_value,
+                                                   lat=float(node_latitude_value),
+                                                   long=float(node_longitude_value))
+            logger.debug("Added Switch=%s", switches[node_index_value])
+        logger.info("Found a total of %d valid switches", len(switches))
+        return switches
 
     @staticmethod
     def get_names_in_graphml(index_values):
@@ -121,20 +154,17 @@ class ITZTopologyFactory(SDNSandboxTopologyFactory):
         return node_label_name_in_graphml, node_latitude_name_in_graphml, node_longitude_name_in_graphml
 
     @staticmethod
-    def get_switch_links(edges, nodes, latency_function=calculate_geodesic_latency):
+    def get_links(edges: List[Element], switches: Dict[int, ITZSwitch], latency_function=calculate_geodesic_latency)\
+            -> List[Link]:
         switch_links = []
         for e in edges:
-            # GET IDS FOR EASIER HANDLING
-            src_id = e.attrib['source']
-            dst_id = e.attrib['target']
-            if not {src_id, dst_id}.issubset(nodes.keys()):
-                logger.debug("Missing edge node id in valid node list - skipping Edge=%s", e.attrib)
+            src_id = int(e.attrib.get('source', '-1'))
+            dst_id = int(e.attrib.get('target', '-1'))
+            src, dst = switches.get(src_id), switches.get(dst_id)
+            if src is None or dst is None:
+                logger.debug("Edge src/dst not in valid switch list - skipping Edge=%s", e.attrib)
+                print("reject "+str(e.attrib))
                 continue
-            latency = latency_function(float(nodes[src_id].Latitude),
-                                       float(nodes[src_id].Longitude),
-                                       float(nodes[dst_id].Latitude),
-                                       float(nodes[dst_id].Longitude))
-            src_name = nodes[src_id].Name
-            dst_name = nodes[dst_id].Name
-            switch_links.append(Link(src_id, src_name, dst_id, dst_name, '{:.6f}'.format(latency)))
+            latency = latency_function(src.lat, src.long, dst.lat, dst.long)
+            switch_links.append(Link(src.ID, dst.ID, '{:.6f}ms'.format(latency)))
         return switch_links
