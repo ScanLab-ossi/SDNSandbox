@@ -116,7 +116,6 @@ class SFlowMonitor(Monitor):
     def get_samples(file, keys, interfaces, normalize_by=None):
         samples = {}
         for line in file:
-            # TODO: find a way to make this less brittle
             when, where, what = line.split(',')
             when = int(when)
             # use data only from the relevant interfaces
