@@ -1,4 +1,3 @@
-import pathlib
 from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass
