@@ -30,19 +30,19 @@ class ITZSwitch(Switch):
     long: float
 
 
-class TopologyFactory(object):
+class TopologyCreatorFactory(object):
     @staticmethod
     def create(topology_conf):
         if topology_conf["type"] == "ITZ":
             with urlopen(topology_conf["graphml"]) as response:
                 graphml = response.read().decode("utf-8")
                 bandwidth = topology_conf["bandwidth"]
-                return ITZTopologyFactory(graphml, bandwidth["host_mbps"], bandwidth["switch_mbps"]).create()
+                return ITZTopologyCreator(graphml, bandwidth["host_mbps"], bandwidth["switch_mbps"])
         else:
             raise ValueError("Unknown topology type=%s" % topology_conf["type"])
 
 
-class SDNSandboxTopologyFactory(object):
+class SDNSandboxTopologyCreator(object):
     def __init__(self,
                  switches: Dict[int, Switch],
                  switch_links: List[Link],
@@ -69,16 +69,16 @@ class SDNSandboxTopologyFactory(object):
         return topo
 
 
-class ITZTopologyFactory(SDNSandboxTopologyFactory):
+class ITZTopologyCreator(SDNSandboxTopologyCreator):
     def __init__(self, graphml, host_bandwidth, switch_bandwidth):
         switches, switch_links = self.extract_switches_and_links_from_graphml(graphml)
         super().__init__(switches, switch_links, host_bandwidth, switch_bandwidth)
 
     @staticmethod
     def extract_switches_and_links_from_graphml(graphml) -> Tuple[Dict[int, ITZSwitch], List[Link]]:
-        edge_set, node_set, index_values_set = ITZTopologyFactory.get_graph_sets_from_graphml(graphml)
-        switches = ITZTopologyFactory.get_switches(node_set, index_values_set)
-        links = ITZTopologyFactory.get_links(edge_set, switches)
+        edge_set, node_set, index_values_set = ITZTopologyCreator.get_graph_sets_from_graphml(graphml)
+        switches = ITZTopologyCreator.get_switches(node_set, index_values_set)
+        links = ITZTopologyCreator.get_links(edge_set, switches)
         return switches, links
 
     @staticmethod
@@ -100,7 +100,7 @@ class ITZTopologyFactory(SDNSandboxTopologyFactory):
                      ns="{http://graphml.graphdrawing.org/xmlns}")\
             -> Dict[int, ITZSwitch]:
         node_label_name, node_latitude_name, node_longitude_name = \
-            ITZTopologyFactory.get_names_in_graphml(index_values)
+            ITZTopologyCreator.get_names_in_graphml(index_values)
         switches = {}
         for n in raw_nodes:
             node_name_value = ''

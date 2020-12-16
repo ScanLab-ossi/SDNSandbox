@@ -1,6 +1,9 @@
 import time
 import logging
 import math
+from dataclasses import dataclass
+from typing import Dict
+
 from geopy.distance import geodesic
 from subprocess import run, PIPE
 from pkg_resources import resource_filename
@@ -70,10 +73,28 @@ def run_script(script_name, info_print, err_print):
     result.check_returncode()
 
 
-def get_inter_switch_port_interfaces(port_re="s[0-9]+-eth[0-9]+@s[0-9]+-eth[0-9]+",
-                                     ip_a_getter=
-                                     lambda:
-                                     run(["ip", "a"], universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout):
+@dataclass
+class Interface:
+    num: int
+    name: str
+    net_meaning: str
+
+
+def get_interface_net_meaning(intf_name: str, switches: Dict[int, str]):
+    split = intf_name.split('@')
+    for switch in split:
+        switch_name = switch.split('-')[0]
+        switch_num = int(switch_name[1:])
+        intf_name = intf_name.replace(switch_name+'-', switches[switch_num]+'-')
+    return intf_name
+
+
+def get_inter_switch_port_interfaces(switches: Dict[int, str],
+                                     port_re="s[0-9]+-eth[0-9]+@s[0-9]+-eth[0-9]+",
+                                     ip_a_getter=lambda:
+                                     run(["ip", "a"], universal_newlines=True, stdout=PIPE, stderr=PIPE).stdout,
+                                     interface_meaning_getter=get_interface_net_meaning)\
+        -> Dict[int, Interface]:
     ip_a_out = ip_a_getter()
     interfaces = {}
     for line in ip_a_out.splitlines():
@@ -81,11 +102,11 @@ def get_inter_switch_port_interfaces(port_re="s[0-9]+-eth[0-9]+@s[0-9]+-eth[0-9]
         if line[0] == ' ':
             continue
         intf_split = line.split(':')
-        intf_num = intf_split[0]
+        intf_num = int(intf_split[0])
         intf_name = intf_split[1].strip()
         logging.debug("found interface #%d: \n%s", intf_num, intf_name)
         if fullmatch(port_re, intf_name):
-            interfaces[intf_num] = intf_name
+            interfaces[intf_num] = Interface(intf_num, intf_name, interface_meaning_getter(intf_name, switches))
         else:
             logging.debug("Interface %s doesn't have inter switch port name, irrelevant - dropped...", intf_name)
     return interfaces

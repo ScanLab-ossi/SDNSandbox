@@ -1,6 +1,6 @@
 import unittest
 
-from sdnsandbox.topology import SDNSandboxTopologyFactory, ITZTopologyFactory, Link, Switch
+from sdnsandbox.topology import SDNSandboxTopologyCreator, ITZTopologyCreator, Link, Switch
 from os.path import join as pj, dirname, abspath
 
 
@@ -8,7 +8,7 @@ class TopologyTestCase(unittest.TestCase):
     def test_create(self):
         switches = {1: Switch(1, '1'), 2: Switch(2, '2')}
         switch_links = [Link(1, 2, '1ms')]
-        topo = SDNSandboxTopologyFactory(switches, switch_links, 10, 100).create()
+        topo = SDNSandboxTopologyCreator(switches, switch_links, 10, 100).create()
         self.assertEqual(['s1', 's2'], topo.switches())
         self.assertEqual([('s1', 's1-H'), ('s1', 's2'), ('s2', 's2-H')], topo.links())
 
@@ -42,7 +42,7 @@ class TopologyTestCase(unittest.TestCase):
         graphml_path = pj(dirname(abspath(__file__)), "Aarnet.graphml")
         with open(graphml_path) as f:
             graphml = f.read()
-            switches, switch_links = ITZTopologyFactory.extract_switches_and_links_from_graphml(graphml)
+            switches, switch_links = ITZTopologyCreator.extract_switches_and_links_from_graphml(graphml)
             self.assertEqual([sw_id for sw_id in range(19)], list(switches.keys()))
             self.assertEqual(aarnet_links, switch_links)
 

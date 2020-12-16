@@ -1,7 +1,7 @@
 import sys
 from socket import gethostbyname_ex
 from sdnsandbox.runner import Runner
-from sdnsandbox.topology import TopologyFactory
+from sdnsandbox.topology import TopologyCreatorFactory
 from sdnsandbox.load_generator import LoadGeneratorFactory
 from sdnsandbox.monitor import MonitorFactory
 from mininet.node import RemoteController
@@ -50,12 +50,13 @@ with open(args.config) as conf_file:
     load_generator_conf = conf['load_generator']
     monitor_conf = conf['monitor']
 
-topology = TopologyFactory.create(topology_conf)
 # we assume the first ip is enough, this works for both an IP address and DNS name
 controller_ip = gethostbyname_ex(controller_conf['ip'])[2][0]
 controller = RemoteController('controller', ip=controller_ip, port=controller_conf["port"])
 load_generator = LoadGeneratorFactory.create(load_generator_conf)
-monitor = MonitorFactory().create(monitor_conf)
+topology_creator = TopologyCreatorFactory.create(topology_conf)
+monitor = MonitorFactory().create(monitor_conf, {sw.ID: sw.name for sw in topology_creator.switches.values()})
+topology = topology_creator.create()
 runner = Runner(topology, controller, load_generator, monitor, args.output_dir, ping_all_full=runner_conf['pingAllFull'])
 try:
     runner.run()

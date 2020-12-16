@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from json import dump
+from typing import Dict
 
 import dacite
 import pandas as pd
 
-from sdnsandbox.util import run_script, get_inter_switch_port_interfaces
+from sdnsandbox.util import run_script, get_inter_switch_port_interfaces, Interface
 from subprocess import Popen, STDOUT
 from shutil import which
 from os.path import join as pj
@@ -18,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 class MonitorFactory(object):
     @staticmethod
-    def create(monitor_conf):
+    def create(monitor_conf, switches: Dict[int, str]):
         if monitor_conf["type"] == "sflow":
             config = dacite.from_dict(data_class=SFlowConfig, data=monitor_conf)
-            return SFlowMonitor(config)
+            return SFlowMonitor(config, switches)
         else:
             raise ValueError("Unknown monitor type=%s" % monitor_conf["type"])
 
@@ -53,11 +54,12 @@ class SFlowMonitor(Monitor):
     sflow_intf_index_key = "ifIndex"
     hd5_key = "sdnsandbox_data"
 
-    def __init__(self, config: SFlowConfig):
+    def __init__(self, config: SFlowConfig, switches: Dict[int, str]):
         if which(config.sflowtool_cmd) is None:
             raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % config.sflowtool_cmd)
         self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, config.data_key]
         self.config = config
+        self.switches = switches
         self.sflowtool_proc = None
         self.output_file = None
         self.interfaces = None
@@ -73,7 +75,8 @@ class SFlowMonitor(Monitor):
             keys = ','.join(self.sflow_keys_to_monitor)
             self.sflowtool_proc = Popen([self.config.sflowtool_cmd, "-k", "-L", keys],
                                         stderr=STDOUT, stdout=self.output_file)
-            self.interfaces = self.get_interfaces(save_json_to=pj(output_path, self.config.interfaces_filename))
+            with open(pj(output_path, self.config.interfaces_filename), 'w') as json_file:
+                self.interfaces = self.get_interfaces(json_file, self.switches)
 
         else:
             logger.error("Monitoring is already running")
@@ -102,29 +105,30 @@ class SFlowMonitor(Monitor):
             logger.error("No monitoring running to stop")
 
     @staticmethod
-    def get_samples_pandas(file, keys, interfaces, normalize_by=None):
+    def get_samples_pandas(file, keys, interfaces: Dict[int, Interface], normalize_by=None):
         samples_df = pd.read_csv(file, names=keys, index_col=[0, 1])
         samples_df = samples_df.unstack()[keys[2]]
-        interfaces_keys = {int(k) for k in interfaces.keys()}
+        interfaces_keys = set(interfaces.keys())
         port_drop_list = list(filter(lambda k: k not in interfaces_keys, samples_df.keys()))
         samples_df.drop(columns=port_drop_list, inplace=True)
-        samples_df.rename(lambda k: interfaces[str(k)], axis=1, inplace=True)
+        samples_df.rename(lambda k: interfaces[k].net_meaning, axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
         return samples_df if not normalize_by else samples_df / normalize_by
 
     @staticmethod
-    def get_samples(file, keys, interfaces, normalize_by=None):
-        samples = {}
+    def get_samples(file, keys, interfaces: Dict[int, Interface], normalize_by=None):
+        samples: Dict[int, Dict[str, float]] = {}
         for line in file:
             when, where, what = line.split(',')
             when = int(when)
+            where = int(where)
             # use data only from the relevant interfaces
             if where in interfaces:
-                where = interfaces[where]
+                where = interfaces[where].net_meaning
                 if normalize_by:
                     what = int(what) / float(normalize_by)
                 else:
-                    what = int(what)
+                    what = float(what)
                 if when in samples:
                     samples[when][where] = what
                 else:
@@ -136,9 +140,10 @@ class SFlowMonitor(Monitor):
         return samples_df
 
     @staticmethod
-    def get_interfaces(save_json_to=None):
-        interfaces = get_inter_switch_port_interfaces()
-        if save_json_to:
-            with open(save_json_to, 'w') as f:
-                dump(interfaces, f, sort_keys=True, indent=4)
+    def get_interfaces(json_file, switches: Dict[int, str], ip_a_getter=None):
+        if ip_a_getter is None:
+            interfaces = get_inter_switch_port_interfaces(switches)
+        else:
+            interfaces = get_inter_switch_port_interfaces(switches, ip_a_getter=ip_a_getter)
+        dump({i.num: asdict(i) for i in interfaces.values()}, json_file, sort_keys=True, indent=4)
         return interfaces

@@ -1,9 +1,9 @@
 import io
 from unittest import TestCase
-from sdnsandbox.util import countdown,\
-                            calculate_geodesic_latency,\
-                            calculate_manual_geodesic_latency,\
-                            get_inter_switch_port_interfaces
+from sdnsandbox.util import countdown, \
+    calculate_geodesic_latency, \
+    calculate_manual_geodesic_latency, \
+    get_inter_switch_port_interfaces, Interface
 
 ip_a_output = '''1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
@@ -14,8 +14,8 @@ ip_a_output = '''1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNK
 3: s3-eth2@s0-eth3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc htb master ovs-system state UP group default qlen 1000
     link/ether 86:57:62:6c:06:1b brd ff:ff:ff:ff:ff:ff
 '''
-
-relevant_interfaces = {'3': 's3-eth2@s0-eth3'}
+switch_num_to_name = {0: 'zero', 3: 'three'}
+relevant_interfaces = {3: Interface(3, 's3-eth2@s0-eth3', 'three-eth2@zero-eth3')}
 
 
 class TestUtil(TestCase):
@@ -41,5 +41,5 @@ class TestUtil(TestCase):
         self.assertEqual('00:0300:0200:01Done!', output.getvalue())
 
     def test_get_inter_switch_port_interfaces(self):
-        res = get_inter_switch_port_interfaces(ip_a_getter=lambda: ip_a_output)
+        res = get_inter_switch_port_interfaces(switch_num_to_name, ip_a_getter=lambda: ip_a_output)
         self.assertEqual(relevant_interfaces, res)
