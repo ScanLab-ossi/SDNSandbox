@@ -1,7 +1,7 @@
 import json
 from unittest import TestCase
 
-from sdnsandbox.load_generator import DITGLoadGenerator, LoadGeneratorFactory, Protocol
+from sdnsandbox.load_generator import DITGLoadGenerator, LoadGeneratorFactory, Protocol, DITGConfig
 
 
 class TestLoadGenerator(TestCase):
@@ -23,7 +23,7 @@ class TestLoadGenerator(TestCase):
         self.assertEqual(150, generator.config.pps_base_level)
         self.assertEqual(100, generator.config.pps_amplitude)
         self.assertEqual(25, generator.config.pps_wavelength)
-        self.assertEqual(1, generator.config.warmup_seconds)
+        self.assertEqual(DITGConfig.warmup_seconds, generator.config.warmup_seconds)
 
     def test_raise_exception_create_ditg_load_generator_unknown_protocol(self):
         generator_conf = json.loads('''{
