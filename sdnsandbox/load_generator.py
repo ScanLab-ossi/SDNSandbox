@@ -105,7 +105,7 @@ class DITGLoadGenerator(LoadGenerator):
                 dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
-            success, failure = 0, 0
+            success, timeout_terminated, failure = 0, 0, 0
             for sender in self.senders:
                 time_passed = monotonic() - sender.start_time
                 timeout = self.config.period_duration_seconds - time_passed
@@ -116,15 +116,19 @@ class DITGLoadGenerator(LoadGenerator):
                     logger.debug("Sender timed out and will be killed: %s", sender.process.args)
                     # forcibly stop senders that took too long, ignoring crashes
                     sender.process.kill()
-                    failure += 1
+                    timeout_terminated += 1
                 elif return_code != 0:
                     failure += 1
                 else:
                     success += 1
                 sender.logfile.close()
             self.senders = []
-            logger.info("For period=%d we had %d successfully completed senders and %d failed senders",
-                        period, success, failure)
+            logger.info(
+                "For period=%d we had "
+                "%d successfully completed senders, "
+                "%d senders we terminated due to timeout "
+                "and %d failed (probably a D-ITG issue) senders",
+                period, success, timeout_terminated, failure)
 
     def run_host_senders(self, host, dest, logs_path, period):
         host_senders = []
