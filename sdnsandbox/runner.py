@@ -1,43 +1,75 @@
 import logging
-from mininet.net import Mininet
-from mininet.link import TCLink
-from mininet.util import dumpNetConnections
+from dataclasses import dataclass
+from enum import Enum
+from json import dump, load
+from typing import Dict, Callable
 from os.path import join as pj
-from sdnsandbox.util import countdown
+from dacite import from_dict
 
+from sdnsandbox.load_generator import LoadGenerator, LoadGeneratorFactory
+from sdnsandbox.monitor import Monitor, MonitorFactory
+from sdnsandbox.network import SDNSandboxNetwork, Interface, SDNSandboxNetworkFactory
 
 logger = logging.getLogger(__name__)
 
 
+class RunnerFactory:
+    @staticmethod
+    def create(config_path: str, output_dir: str):
+        with open(config_path) as conf_file:
+            conf = load(conf_file)['runner']
+            conf['load_generator'] = LoadGeneratorFactory.create(conf['load_generator'])
+            conf['monitor'] = MonitorFactory.create(conf['monitor'])
+            conf['network'] = SDNSandboxNetworkFactory.create(conf['network'])
+            conf['output_dir'] = output_dir
+            data = from_dict(RunnerData, conf)
+            return Runner(data)
+
+
+class InterfaceTranslation(Enum):
+    NUM_TO_STRING = 0
+    TRANSLATE_TO_NAMES = 1
+    TRANSLATE_TO_MEANINGS = 2
+
+
+@dataclass
+class RunnerData:
+    network: SDNSandboxNetwork
+    load_generator: LoadGenerator
+    monitor: Monitor
+    output_dir: str
+    network_data_filename: str = 'network_data.json'
+    hd5_key: str = 'sdnsandbox_data'
+    hd5_filename: str = 'sdnsandbox.hd5'
+    interfaces_translation: InterfaceTranslation = InterfaceTranslation.TRANSLATE_TO_MEANINGS
+
+
 class Runner(object):
-    def __init__(self, topology, controller, load_generator, monitor, output_dir, ping_all_full=False):
-        self.net = Mininet(topo=topology, controller=lambda unneeded: controller, link=TCLink)
-        self.load_generator = load_generator
-        self.monitor = monitor
-        self.output_dir = output_dir
-        self.ping_all_full = ping_all_full
+    def __init__(self, data: RunnerData):
+        self.data = data
 
     def run(self):
-        self.run_network()
-        self.load_generator.start_receivers(self.net, self.output_dir)
-        self.monitor.start_monitoring(self.output_dir)
-        self.load_generator.run_senders(self.net, self.output_dir)
+        self.data.network.start()
+        hosts = self.data.network.get_hosts()
+        self.data.load_generator.start_receivers(hosts, self.data.output_dir)
+        self.data.monitor.start_monitoring(self.data.output_dir)
+        self.data.load_generator.run_senders(hosts, self.data.output_dir)
 
-    def stop_and_save_monitoring_data(self):
-        self.monitor.stop_monitoring_and_save(self.output_dir)
-        self.load_generator.stop_receivers()
-        logger.info("Stopping the network...")
-        self.net.stop()
+    def stop_and_save(self):
+        network_data = self.data.network.get_network_data()
+        logger.info("Saving network data as %s", self.data.network_data_filename)
+        with open(pj(self.data.output_dir, self.data.network_data_filename), 'w') as json_file:
+            dump(network_data, json_file, sort_keys=True, indent=4)
+        interfaces_naming = self.get_interfaces_naming(network_data.interfaces)
+        monitoring_data_df = self.data.monitor.process_monitoring_data(interfaces_naming)
+        logger.info("Saving samples as %s", self.data.hd5_filename)
+        monitoring_data_df.to_hdf(pj(self.data.output_dir, self.data.hd5_filename), key=self.data.hd5_key)
+        self.data.load_generator.stop_receivers()
+        self.data.network.stop()
 
-    def run_network(self):
-        """Create network and start it"""
-        self.net.start()
-
-        logger.info("Waiting for the controller to finish network setup...")
-        countdown(logger.info, 3)
-
-        dumpNetConnections(self.net)
-        if self.ping_all_full:
-            logger.info("PingAll to make sure everything's OK")
-            self.net.pingAllFull()
-        return self.net
+    def get_interfaces_naming(self, interfaces: Dict[int, Interface]) -> Dict[int, str]:
+        getters: Dict[InterfaceTranslation, Callable[[Interface], str]] =\
+            {InterfaceTranslation.NUM_TO_STRING: lambda i: i.num,
+             InterfaceTranslation.TRANSLATE_TO_NAMES: lambda i: i.name,
+             InterfaceTranslation.TRANSLATE_TO_MEANINGS: lambda i: i.net_meaning}
+        return {num: getters[self.data.interfaces_translation](interfaces[num]) for num in interfaces.keys()}

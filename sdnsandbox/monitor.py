@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 import logging
-from dataclasses import dataclass, asdict
-from json import dump
+from dataclasses import dataclass
 from typing import Dict
 
 import dacite
 import pandas as pd
 
-from sdnsandbox.util import run_script, get_inter_switch_port_interfaces, Interface
+from sdnsandbox.util import run_script
 from subprocess import Popen, STDOUT
 from shutil import which
 from os.path import join as pj
@@ -19,21 +18,21 @@ logger = logging.getLogger(__name__)
 
 class MonitorFactory(object):
     @staticmethod
-    def create(monitor_conf, switches: Dict[int, str]):
+    def create(monitor_conf):
         if monitor_conf["type"] == "sflow":
             config = dacite.from_dict(data_class=SFlowConfig, data=monitor_conf)
-            return SFlowMonitor(config, switches)
+            return SFlowMonitor(config)
         else:
             raise ValueError("Unknown monitor type=%s" % monitor_conf["type"])
 
 
 class Monitor(ABC):
     @abstractmethod
-    def start_monitoring(self, output_path):
+    def start_monitoring(self, output_path: str):
         pass
 
     @abstractmethod
-    def stop_monitoring_and_save(self, output_path):
+    def process_monitoring_data(self, interfaces_naming: Dict[int, str]):
         pass
 
 
@@ -42,27 +41,23 @@ class SFlowConfig:
     data_key: str
     normalize_by: float
     csv_filename: str = 'sflow.csv'
-    interfaces_filename: str = 'interfaces.json'
-    hd5_filename: str = 'sflow.hd5'
     pandas_processing: bool = True
     sflowtool_cmd: str = "sflowtool"
+    delete_csv: bool = True
 
 
 class SFlowMonitor(Monitor):
     """A Monitor using an sFlow collector process and OvS-embedded sFlow monitoring"""
     sflow_time_key = "unixSecondsUTC"
     sflow_intf_index_key = "ifIndex"
-    hd5_key = "sdnsandbox_data"
 
-    def __init__(self, config: SFlowConfig, switches: Dict[int, str]):
+    def __init__(self, config: SFlowConfig):
         if which(config.sflowtool_cmd) is None:
             raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % config.sflowtool_cmd)
         self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, config.data_key]
         self.config = config
-        self.switches = switches
         self.sflowtool_proc = None
         self.output_file = None
-        self.interfaces = None
         self.samples_processor = self.get_samples_pandas if config.pandas_processing else self.get_samples
 
     def start_monitoring(self, output_path):
@@ -75,13 +70,10 @@ class SFlowMonitor(Monitor):
             keys = ','.join(self.sflow_keys_to_monitor)
             self.sflowtool_proc = Popen([self.config.sflowtool_cmd, "-k", "-L", keys],
                                         stderr=STDOUT, stdout=self.output_file)
-            with open(pj(output_path, self.config.interfaces_filename), 'w') as json_file:
-                self.interfaces = self.get_interfaces(json_file, self.switches)
-
         else:
             logger.error("Monitoring is already running")
 
-    def stop_monitoring_and_save(self, output_path, pandas_processing=True, delete_csv=True):
+    def process_monitoring_data(self, interfaces_naming: Dict[int, str]):
         if self.sflowtool_proc is not None:
             logger.info("Stopping %s", self.config.sflowtool_cmd)
             self.sflowtool_proc.terminate()
@@ -90,13 +82,10 @@ class SFlowMonitor(Monitor):
             self.output_file.seek(0)
             samples_df = self.samples_processor(self.output_file,
                                                 self.sflow_keys_to_monitor,
-                                                self.interfaces,
+                                                interfaces_naming,
                                                 normalize_by=self.config.normalize_by)
-            logger.info("Saving samples as %s", self.config.hd5_filename)
-            samples_df.to_hdf(pj(output_path, self.config.hd5_filename), key=self.hd5_key)
-            self.interfaces = None
             self.output_file.close()
-            if delete_csv:
+            if self.config.delete_csv:
                 logger.info("Deleting original sFlow CSV %s", self.output_file.name)
                 remove(self.output_file.name)
             self.output_file = None
@@ -105,26 +94,26 @@ class SFlowMonitor(Monitor):
             logger.error("No monitoring running to stop")
 
     @staticmethod
-    def get_samples_pandas(file, keys, interfaces: Dict[int, Interface], normalize_by=None):
+    def get_samples_pandas(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
         samples_df = pd.read_csv(file, names=keys, index_col=[0, 1])
         samples_df = samples_df.unstack()[keys[2]]
-        interfaces_keys = set(interfaces.keys())
+        interfaces_keys = set(interfaces_naming.keys())
         port_drop_list = list(filter(lambda k: k not in interfaces_keys, samples_df.keys()))
         samples_df.drop(columns=port_drop_list, inplace=True)
-        samples_df.rename(lambda k: interfaces[k].net_meaning, axis=1, inplace=True)
+        samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
-        return samples_df if not normalize_by else samples_df / normalize_by
+        return samples_df / 1.0 if not normalize_by else samples_df / normalize_by
 
     @staticmethod
-    def get_samples(file, keys, interfaces: Dict[int, Interface], normalize_by=None):
-        samples: Dict[int, Dict[str, float]] = {}
+    def get_samples(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
+        samples = {}
         for line in file:
             when, where, what = line.split(',')
             when = int(when)
             where = int(where)
             # use data only from the relevant interfaces
-            if where in interfaces:
-                where = interfaces[where].net_meaning
+            if where in interfaces_naming:
+                where = interfaces_naming[where]
                 if normalize_by:
                     what = int(what) / float(normalize_by)
                 else:
@@ -138,12 +127,3 @@ class SFlowMonitor(Monitor):
         samples_df.rename_axis(keys[1], axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
         return samples_df
-
-    @staticmethod
-    def get_interfaces(json_file, switches: Dict[int, str], ip_a_getter=None):
-        if ip_a_getter is None:
-            interfaces = get_inter_switch_port_interfaces(switches)
-        else:
-            interfaces = get_inter_switch_port_interfaces(switches, ip_a_getter=ip_a_getter)
-        dump({i.num: asdict(i) for i in interfaces.values()}, json_file, sort_keys=True, indent=4)
-        return interfaces

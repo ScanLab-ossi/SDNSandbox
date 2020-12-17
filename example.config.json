@@ -1,33 +1,33 @@
 {
-  "topology": {
-    "type": "ITZ",
-    "graphml": "http://www.topology-zoo.org/files/Aarnet.graphml",
-    "bandwidth": {
-      "host_mbps": 10,
-      "switch_mbps": 100
-      }
-  },
-  "controller": {
-    "ip": "controller",
-    "port": 6653
-  },
   "runner": {
-    "pingAllFull": false
-  },
-  "load_generator": {
-    "type": "DITG",
-    "protocol": "UDP",
-    "periods": 1200,
-    "period_duration_seconds": 30,
-    "pps_base_level": 150,
-    "pps_amplitude": 100,
-    "pps_wavelength": 25
-  },
-  "monitor": {
-    "type": "sflow",
-    "data_key": "ifInOctets",
-    "normalize_by": 1048576,
-    "csv_filename": "sflow.csv",
-    "interfaces_filename": "interfaces.json"
+    "network": {
+      "topology_creator": {
+        "type": "ITZ",
+        "graphml": "http://www.topology-zoo.org/files/Aarnet.graphml",
+        "bandwidth": {
+          "host_mbps": 10,
+          "switch_mbps": 100
+        }
+      },
+      "controller": {
+        "ip": "controller",
+        "port": 6653
+      },
+      "test_ping_all_full": false
+    },
+    "load_generator": {
+      "type": "DITG",
+      "protocol": "UDP",
+      "periods": 1200,
+      "period_duration_seconds": 30,
+      "pps_base_level": 150,
+      "pps_amplitude": 100,
+      "pps_wavelength": 25
+    },
+    "monitor": {
+      "type": "sflow",
+      "data_key": "ifInOctets",
+      "normalize_by": 1048576
+    }
   }
 }

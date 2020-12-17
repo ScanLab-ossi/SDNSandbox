@@ -8,8 +8,7 @@ from math import pi, sin
 from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
-from time import monotonic
-from time import sleep
+from time import monotonic, sleep
 import dacite
 
 
@@ -79,7 +78,7 @@ class DITGLoadGenerator(LoadGenerator):
         super().__init__()
         self.config = config
 
-    def start_receivers(self, network, output_path):
+    def start_receivers(self, hosts, output_path):
         logger.info("Adding ITGRecv to all network hosts")
         logs_path = pj(output_path, "logs", "receivers")
         makedirs(logs_path)
@@ -89,19 +88,19 @@ class DITGLoadGenerator(LoadGenerator):
                        'echo [$(date)] ITGRecv Stopped;' \
                        'done'
         self.receivers = []
-        for host in network.hosts:
+        for host in hosts:
             log_path = pj(logs_path, "receiver-" + host.IP() + ".log")
             logfile = open(log_path, 'w')
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(self.Receiver(itg_recv, logfile))
 
-    def run_senders(self, network, output_path):
+    def run_senders(self, hosts, output_path):
         logger.info("Running ITGSenders")
         logs_path = pj(output_path, "logs", "senders")
         makedirs(logs_path)
-        host_addresses = [host.IP() for host in network.hosts]
+        host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
-            for host_index, host in enumerate(network.hosts):
+            for host_index, host in enumerate(hosts):
                 dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)

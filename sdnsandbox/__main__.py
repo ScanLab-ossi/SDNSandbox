@@ -1,15 +1,10 @@
 import sys
-from socket import gethostbyname_ex
-from sdnsandbox.runner import Runner
-from sdnsandbox.topology import TopologyCreatorFactory
-from sdnsandbox.load_generator import LoadGeneratorFactory
-from sdnsandbox.monitor import MonitorFactory
-from mininet.node import RemoteController
 from mininet.log import setLogLevel
 import logging
 import argparse
-from json import load
 from os.path import join as pj
+
+from sdnsandbox.runner import RunnerFactory
 
 
 def setup_logging(sdnsandbox_debug, mininet_debug, output_dir):
@@ -42,28 +37,12 @@ def parse_arguments():
 
 args = parse_arguments()
 setup_logging(args.debug, args.mininet_debug, args.output_dir)
-with open(args.config) as conf_file:
-    conf = load(conf_file)
-    topology_conf = conf['topology']
-    controller_conf = conf['controller']
-    runner_conf = conf['runner']
-    load_generator_conf = conf['load_generator']
-    monitor_conf = conf['monitor']
-
-# we assume the first ip is enough, this works for both an IP address and DNS name
-controller_ip = gethostbyname_ex(controller_conf['ip'])[2][0]
-controller = RemoteController('controller', ip=controller_ip, port=controller_conf["port"])
-load_generator = LoadGeneratorFactory.create(load_generator_conf)
-topology_creator = TopologyCreatorFactory.create(topology_conf)
-monitor = MonitorFactory().create(monitor_conf, {sw.ID: sw.name for sw in topology_creator.switches.values()})
-topology = topology_creator.create()
-runner = Runner(topology, controller, load_generator, monitor, args.output_dir, ping_all_full=runner_conf['pingAllFull'])
+runner = RunnerFactory.create(args.config, args.output_dir)
 try:
     runner.run()
-    runner.stop_and_save_monitoring_data()
 except KeyboardInterrupt:
     logging.fatal("Interrupted during experiment... Attempting to clean up and exiting...")
-    runner.stop_and_save_monitoring_data()
 finally:
+    runner.stop_and_save()
     logging.info('The experiment files can be found in %s', args.output_dir)
     logging.info('NOTE: If the experiment was run inside a Docker container, the location depends on the volume mount')
