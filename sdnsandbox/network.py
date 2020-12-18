@@ -40,7 +40,6 @@ class Interface:
 class SDNSandboxNetworkConfig:
     topology_creator: SDNSandboxTopologyCreator
     controller: Controller
-    network_data_filename: str
     test_ping_all_full: bool = False
 
 
