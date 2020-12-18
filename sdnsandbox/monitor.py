@@ -65,8 +65,9 @@ class SFlowMonitor(Monitor):
             logger.info("Starting sFlow monitoring")
             logger.info("Creating sFlow monitoring instances in the ovs switches")
             run_script("set_ovs_sflow.sh", logger.info, logger.error)
-            logger.info("Starting %s to record monitoring data to: %s" % (self.config.sflowtool_cmd, output_path))
             self.output_file = open(pj(output_path, self.config.csv_filename), 'a+')
+            logger.info("Starting %s to record monitoring data to: %s" % (self.config.sflowtool_cmd,
+                                                                          self.output_file.name))
             keys = ','.join(self.sflow_keys_to_monitor)
             self.sflowtool_proc = Popen([self.config.sflowtool_cmd, "-k", "-L", keys],
                                         stderr=STDOUT, stdout=self.output_file)
