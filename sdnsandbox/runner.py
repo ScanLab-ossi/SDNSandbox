@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from json import dump, load
 from typing import Dict, Callable
@@ -59,7 +59,7 @@ class Runner(object):
         network_data = self.data.network.get_network_data()
         logger.info("Saving network data as %s", self.data.network_data_filename)
         with open(pj(self.data.output_dir, self.data.network_data_filename), 'w') as json_file:
-            dump(network_data, json_file, sort_keys=True, indent=4)
+            dump(asdict(network_data), json_file, sort_keys=True, indent=4)
         interfaces_naming = self.get_interfaces_naming(network_data.interfaces)
         monitoring_data_df = self.data.monitor.process_monitoring_data(interfaces_naming)
         logger.info("Saving samples as %s", self.data.hd5_filename)
