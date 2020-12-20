@@ -1,4 +1,5 @@
 import sys
+from os import makedirs
 from mininet.log import setLogLevel
 import logging
 import argparse
@@ -36,8 +37,10 @@ def parse_arguments():
 
 
 args = parse_arguments()
-setup_logging(args.debug, args.mininet_debug, args.output_dir)
-runner = RunnerFactory.create(args.config, args.output_dir)
+logs_path = pj(args.output_dir, "logs")
+makedirs(logs_path)
+setup_logging(args.debug, args.mininet_debug, logs_path)
+runner = RunnerFactory.create(args.config, args.output_dir, logs_path)
 try:
     runner.run()
 except KeyboardInterrupt:

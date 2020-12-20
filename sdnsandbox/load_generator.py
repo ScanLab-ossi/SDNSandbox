@@ -47,11 +47,11 @@ class LoadGenerator(ABC):
         self.senders = []
 
     @abstractmethod
-    def start_receivers(self, network, output_path):
+    def start_receivers(self, network, output_path, logs_path=''):
         pass
 
     @abstractmethod
-    def run_senders(self, network, output_path):
+    def run_senders(self, network, output_path, logs_path=''):
         pass
 
     @abstractmethod
@@ -78,10 +78,11 @@ class DITGLoadGenerator(LoadGenerator):
         super().__init__()
         self.config = config
 
-    def start_receivers(self, hosts, output_path):
+    def start_receivers(self, hosts, output_path, logs_path=''):
         logger.info("Adding ITGRecv to all network hosts")
-        logs_path = pj(output_path, "logs", "receivers")
-        makedirs(logs_path)
+        if logs_path == '':
+            logs_path = pj(output_path, "logs", "receivers")
+            makedirs(logs_path)
         itg_recv_cmd = 'while [ 1 ]; do ' \
                        'echo [$(date)] Starting ITGRecv;' \
                        'ITGRecv;' \
@@ -94,10 +95,11 @@ class DITGLoadGenerator(LoadGenerator):
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(self.Receiver(itg_recv, logfile))
 
-    def run_senders(self, hosts, output_path):
+    def run_senders(self, hosts, output_path, logs_path=''):
         logger.info("Running ITGSenders")
-        logs_path = pj(output_path, "logs", "senders")
-        makedirs(logs_path)
+        if logs_path == '':
+            logs_path = pj(output_path, "logs", "senders")
+            makedirs(logs_path)
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
