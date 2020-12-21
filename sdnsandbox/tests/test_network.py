@@ -2,6 +2,8 @@ from dataclasses import asdict
 from json import dumps
 from unittest import TestCase
 
+from mininet.node import Controller
+
 from sdnsandbox.network import SDNSandboxNetwork, Interface, SDNSandboxNetworkConfig
 from sdnsandbox.topology import SDNSandboxTopologyCreator, Switch, Link
 
@@ -46,7 +48,8 @@ class TestNetwork(TestCase):
         switches = {13: Switch(13, 'thirteen')}
         switch_links = [Link(13, 15, '1.234567ms')]
         topology_creator_mock = SDNSandboxTopologyCreator(switches, switch_links, 0, 0)
-        mock_config = SDNSandboxNetworkConfig(topology_creator_mock, 'filename')
+        controller = Controller('controller')
+        mock_config = SDNSandboxNetworkConfig(topology_creator_mock, controller)
         net = SDNSandboxNetwork(mock_config)
         net.interfaces = {13: Interface(13, 'name13', 'mean13')}
         network_data = net.get_network_data()
