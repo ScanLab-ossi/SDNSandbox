@@ -107,7 +107,7 @@ class SFlowMonitor(Monitor):
 
     @staticmethod
     def get_samples(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
-        samples = {}
+        samples: Dict[int, Dict[str, float]] = {}
         for line in file:
             when, where, what = line.split(',')
             when = int(when)
