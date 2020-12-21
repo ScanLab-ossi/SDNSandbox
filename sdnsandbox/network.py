@@ -117,7 +117,6 @@ class SDNSandboxNetwork:
         return self.interfaces
 
     def get_network_data(self) -> SDNSandboxNetworkData:
-        interfaces = {i.num: asdict(i) for i in self.interfaces.values()}
-        switches = {s.ID: asdict(s) for s in self.config.topology_creator.switches.values()}
-        links = [asdict(link) for link in self.config.topology_creator.switch_links]
-        return SDNSandboxNetworkData(interfaces, switches, links)
+        return SDNSandboxNetworkData(self.interfaces,
+                                     self.config.topology_creator.switches,
+                                     self.config.topology_creator.switch_links)
