@@ -67,16 +67,17 @@ class Runner(object):
         logger.info("Saving network data as %s", self.data.network_data_filename)
         with open(pj(self.data.output_dir, self.data.network_data_filename), 'w') as json_file:
             dump(asdict(network_data), json_file, sort_keys=True, indent=4)
-        interfaces_naming = self.get_interfaces_naming(network_data.interfaces)
+        interfaces_naming = self.get_interfaces_naming(self.data.interfaces_translation, network_data.interfaces)
         monitoring_data_df = self.data.monitor.process_monitoring_data(interfaces_naming)
         logger.info("Saving samples as %s", self.data.hd5_filename)
         monitoring_data_df.to_hdf(pj(self.data.output_dir, self.data.hd5_filename), key=self.data.hd5_key)
         self.data.load_generator.stop_receivers()
         self.data.network.stop()
 
-    def get_interfaces_naming(self, interfaces: Dict[int, Interface]) -> Dict[int, str]:
+    @staticmethod
+    def get_interfaces_naming(interfaces_translation, interfaces: Dict[int, Interface]) -> Dict[int, str]:
         getters: Dict[InterfaceTranslation, Callable[[Interface], str]] =\
-            {InterfaceTranslation.NUM_TO_STRING: lambda i: i.num,
+            {InterfaceTranslation.NUM_TO_STRING: lambda i: str(i.num),
              InterfaceTranslation.TRANSLATE_TO_NAMES: lambda i: i.name,
              InterfaceTranslation.TRANSLATE_TO_MEANINGS: lambda i: i.net_meaning}
-        return {num: getters[self.data.interfaces_translation](interfaces[num]) for num in interfaces.keys()}
+        return {num: getters[interfaces_translation](interfaces[num]) for num in interfaces.keys()}
