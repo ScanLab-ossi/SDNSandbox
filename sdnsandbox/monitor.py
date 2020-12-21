@@ -101,8 +101,9 @@ class SFlowMonitor(Monitor):
         interfaces_keys = set(interfaces_naming.keys())
         port_drop_list = list(filter(lambda k: k not in interfaces_keys, samples_df.keys()))
         samples_df.drop(columns=port_drop_list, inplace=True)
-        samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
+        # sort first to not be influenced by the renaming
         samples_df.sort_index(axis=1, inplace=True)
+        samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
         return samples_df / 1.0 if not normalize_by else samples_df / normalize_by
 
     @staticmethod
