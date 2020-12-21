@@ -3,13 +3,14 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from json import dump, load
 from os import makedirs
-from typing import Dict, Callable
+from typing import Dict, Callable, List
 from os.path import join as pj
 from dacite import from_dict
 
 from sdnsandbox.load_generator import LoadGenerator, LoadGeneratorFactory
 from sdnsandbox.monitor import Monitor, MonitorFactory
 from sdnsandbox.network import SDNSandboxNetwork, Interface, SDNSandboxNetworkFactory
+from sdnsandbox.processor import ProcessorsFactory, Processor
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class RunnerFactory:
             conf['load_generator'] = LoadGeneratorFactory.create(conf['load_generator'])
             conf['monitor'] = MonitorFactory.create(conf['monitor'])
             conf['network'] = SDNSandboxNetworkFactory.create(conf['network'])
+            conf['post_processors'] = ProcessorsFactory.create(conf['post_processors'])
             conf['output_dir'] = output_dir
             conf['logs_dir'] = logs_dir
             data = from_dict(RunnerData, conf)
@@ -39,6 +41,7 @@ class RunnerData:
     network: SDNSandboxNetwork
     load_generator: LoadGenerator
     monitor: Monitor
+    post_processors: List[Processor]
     output_dir: str
     logs_dir: str
     network_data_filename: str = 'network_data.json'
@@ -71,6 +74,7 @@ class Runner(object):
         monitoring_data_df = self.data.monitor.process_monitoring_data(interfaces_naming)
         logger.info("Saving samples as %s", self.data.hd5_filename)
         monitoring_data_df.to_hdf(pj(self.data.output_dir, self.data.hd5_filename), key=self.data.hd5_key)
+        self.post_process(monitoring_data_df)
         self.data.load_generator.stop_receivers()
         self.data.network.stop()
 
@@ -81,3 +85,7 @@ class Runner(object):
              InterfaceTranslation.TRANSLATE_TO_NAMES: lambda i: i.name,
              InterfaceTranslation.TRANSLATE_TO_MEANINGS: lambda i: i.net_meaning}
         return {num: getters[interfaces_translation](interfaces[num]) for num in interfaces.keys()}
+
+    def post_process(self, monitoring_data_df):
+        for processor in self.data.post_processors:
+            processor.process(monitoring_data_df, self.data.output_dir)

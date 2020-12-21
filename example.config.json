@@ -28,6 +28,12 @@
       "type": "sflow",
       "data_key": "ifInOctets",
       "normalize_by": 1048576
-    }
+    },
+    "post_processors": [
+      {
+        "type": "IQR",
+        "iqr_filename": "iqr.json"
+      }
+    ]
   }
 }
