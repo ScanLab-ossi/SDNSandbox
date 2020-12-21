@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 
 import dacite
 import pandas as pd
@@ -32,7 +32,7 @@ class Monitor(ABC):
         pass
 
     @abstractmethod
-    def process_monitoring_data(self, interfaces_naming: Dict[int, str]):
+    def process_monitoring_data(self, interfaces_naming: Dict[int, str]) -> Optional[pd.DataFrame]:
         pass
 
 
@@ -74,7 +74,7 @@ class SFlowMonitor(Monitor):
         else:
             logger.error("Monitoring is already running")
 
-    def process_monitoring_data(self, interfaces_naming: Dict[int, str]):
+    def process_monitoring_data(self, interfaces_naming: Dict[int, str]) -> Optional[pd.DataFrame]:
         if self.sflowtool_proc is not None:
             logger.info("Stopping %s", self.config.sflowtool_cmd)
             self.sflowtool_proc.terminate()
@@ -92,7 +92,8 @@ class SFlowMonitor(Monitor):
             self.output_file = None
             return samples_df
         else:
-            logger.error("No monitoring running to stop")
+            logger.error("No monitoring currently running to stop and process")
+            return None
 
     @staticmethod
     def get_samples_pandas(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
