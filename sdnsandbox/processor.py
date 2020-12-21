@@ -41,10 +41,10 @@ class IQRProcessor(Processor):
                 IQRProcessor.get_iqr(sampling_df.to_numpy(),
                                      'IQR for all readings'),
             'second_means_iqr':
-                IQRProcessor.get_iqr(sampling_df.mean(axis=0).to_numpy(),
+                IQRProcessor.get_iqr(sampling_df.mean(axis=1).to_numpy(),
                                      'IQR for means of all seconds (mean of all readings per second)'),
             'port_means_iqr':
-                IQRProcessor.get_iqr(sampling_df.mean(axis=1).to_numpy(),
+                IQRProcessor.get_iqr(sampling_df.mean(axis=0).to_numpy(),
                                      'IQR for port means (mean of all the readings a port had)')
         }
         logger.debug("IQR results are: %s", str(results))
