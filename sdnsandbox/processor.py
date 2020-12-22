@@ -73,6 +73,8 @@ class PlottingProcessor(Processor):
         plots_dir = pj(output_path, self.plots_dirname)
         logger.info("Creating directory " + plots_dir + " for plots")
         makedirs(plots_dir)
+        # this is needed for proper time-series plots
+        pd.plotting.register_matplotlib_converters()
         for column in sampling_df.keys():
             logger.info("Plotting samples for port " + column)
             sampling_df[column].plot()
