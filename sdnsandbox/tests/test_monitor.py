@@ -3,20 +3,12 @@ import unittest
 from os.path import abspath, dirname, join as pj
 from timeit import repeat as timeit
 import pandas as pd
+from numpy import datetime64
 
 from sdnsandbox.monitor import SFlowMonitor, MonitorFactory
 
 
 class MonitorTestCase(unittest.TestCase):
-    sflow_csv = None
-    expected_samples = {1607902308: {'mean41': 11458.0, 'mean43': 10795.0, 'mean45': 10200.0},
-                        1607902309: {'mean41': 7962.0, 'mean43': 3290.0, 'mean45': 12242.0},
-                        1607902310: {'mean41': 10073.0, 'mean43': 1621.0, 'mean45': 9513.0},
-                        1607902311: {'mean41': 16525.0, 'mean43': 2806.0, 'mean45': 16020.0}}
-    expected_normalized_samples = {1607902308: {'mean41': 11.458, 'mean43': 10.795, 'mean45': 10.200},
-                                   1607902309: {'mean41': 7.962, 'mean43': 3.290, 'mean45': 12.242},
-                                   1607902310: {'mean41': 10.073, 'mean43': 1.621, 'mean45': 9.513},
-                                   1607902311: {'mean41': 16.525, 'mean43': 2.806, 'mean45': 16.020}}
     expected_interfaces = {41: 'mean41',
                            43: 'mean43',
                            45: 'mean45'}
@@ -31,12 +23,24 @@ class MonitorTestCase(unittest.TestCase):
         cls.keys = [SFlowMonitor.sflow_time_key,
                     SFlowMonitor.sflow_intf_index_key,
                     "data_key"]
-        cls.expected_samples = pd.DataFrame.from_dict(cls.expected_samples, orient='index')
+        expected_samples = {1607902308: {'mean41': 11458.0, 'mean43': 10795.0, 'mean45': 10200.0},
+                            1607902309: {'mean41': 7962.0, 'mean43': 3290.0, 'mean45': 12242.0},
+                            1607902310: {'mean41': 10073.0, 'mean43': 1621.0, 'mean45': 9513.0},
+                            1607902311: {'mean41': 16525.0, 'mean43': 2806.0, 'mean45': 16020.0}}
+        expected_normalized_samples = {1607902308: {'mean41': 11.458, 'mean43': 10.795, 'mean45': 10.200},
+                                       1607902309: {'mean41': 7.962, 'mean43': 3.290, 'mean45': 12.242},
+                                       1607902310: {'mean41': 10.073, 'mean43': 1.621, 'mean45': 9.513},
+                                       1607902311: {'mean41': 16.525, 'mean43': 2.806, 'mean45': 16.020}}
+        cls.expected_samples = pd.DataFrame.from_dict(expected_samples, orient='index')
         cls.expected_samples.rename_axis(cls.keys[0], inplace=True)
         cls.expected_samples.rename_axis(cls.keys[1], axis=1, inplace=True)
-        cls.expected_normalized_samples = pd.DataFrame.from_dict(cls.expected_normalized_samples, orient='index')
+        cls.expected_samples.index = cls.expected_samples.index.map(lambda time:
+                                                                    datetime64(time, 's'))
+        cls.expected_normalized_samples = pd.DataFrame.from_dict(expected_normalized_samples, orient='index')
         cls.expected_normalized_samples.rename_axis(cls.keys[0], inplace=True)
         cls.expected_normalized_samples.rename_axis(cls.keys[1], axis=1, inplace=True)
+        cls.expected_normalized_samples.index = cls.expected_normalized_samples.index.map(lambda time:
+                                                                                          datetime64(time, 's'))
 
     def setUp(self):
         self.sflow_csv.seek(0)

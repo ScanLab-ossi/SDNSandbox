@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 import dacite
 import pandas as pd
+from numpy import datetime64
 
 from sdnsandbox.util import run_script
 from subprocess import Popen, STDOUT
@@ -110,6 +111,7 @@ class SFlowMonitor(Monitor):
         # sort first to not be influenced by the renaming
         samples_df.sort_index(axis=1, inplace=True)
         samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
+        samples_df.index = samples_df.index.map(lambda time: datetime64(time, 's'))
         return samples_df / 1.0 if normalize_by is None else samples_df / normalize_by
 
     @staticmethod
@@ -137,4 +139,5 @@ class SFlowMonitor(Monitor):
         samples_df.rename_axis(keys[1], axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
         samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
+        samples_df.index = samples_df.index.map(lambda time: datetime64(time, 's'))
         return samples_df
