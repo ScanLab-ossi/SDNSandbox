@@ -110,7 +110,7 @@ class SFlowMonitor(Monitor):
         # sort first to not be influenced by the renaming
         samples_df.sort_index(axis=1, inplace=True)
         samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
-        return samples_df / 1.0 if not normalize_by else samples_df / normalize_by
+        return samples_df / 1.0 if normalize_by is None else samples_df / normalize_by
 
     @staticmethod
     def get_samples(file, keys, interfaces_naming: Dict[int, str], is_cumulative_data=True, normalize_by=None):
