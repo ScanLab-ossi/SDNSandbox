@@ -68,6 +68,9 @@ class IQRProcessor(Processor):
 @dataclass
 class PlottingProcessor(Processor):
     plots_dirname: str = 'plots'
+    xlabel: str = 'Time'
+    ylabel: str = 'MB/s'
+    filename_format: str = "link_load_{}.png"
 
     def process(self, sampling_df: pd.DataFrame, output_path: str):
         plots_dir = pj(output_path, self.plots_dirname)
@@ -76,12 +79,12 @@ class PlottingProcessor(Processor):
         # this is needed for proper time-series plots
         pd.plotting.register_matplotlib_converters()
         for column in sampling_df.keys():
-            logger.info("Plotting samples for port " + column)
+            logger.info("Plotting samples for port " + str(column))
             sampling_df[column].plot()
-            plt.xlabel('Time')
-            plt.ylabel('MB/s')
+            plt.xlabel(self.xlabel)
+            plt.ylabel(self.ylabel)
             plt.tight_layout()
-            filename = pj(plots_dir, "link_load_" + column + ".png")
+            filename = pj(plots_dir, self.filename_format.format(column))
             logger.info("Saving plot to " + filename)
             plt.savefig(filename)
             plt.close()
