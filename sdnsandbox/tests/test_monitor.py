@@ -9,16 +9,14 @@ from sdnsandbox.monitor import SFlowMonitor, MonitorFactory
 
 class MonitorTestCase(unittest.TestCase):
     sflow_csv = None
-    expected_samples = {1607902307: {'mean41': 4247.0, 'mean43': 6394.0, 'mean45': 3973.0},
-                        1607902308: {'mean41': 15705.0, 'mean43': 17189.0, 'mean45': 14173.0},
-                        1607902309: {'mean41': 23667.0, 'mean43': 20479.0, 'mean45': 26415.0},
-                        1607902310: {'mean41': 33740.0, 'mean43': 22100.0, 'mean45': 35928.0},
-                        1607902311: {'mean41': 50265.0, 'mean43': 24906.0, 'mean45': 51948.0}}
-    expected_normalized_samples = {1607902307: {'mean41': 4.247, 'mean43': 6.394, 'mean45': 3.973},
-                                   1607902308: {'mean41': 15.705, 'mean43': 17.189, 'mean45': 14.173},
-                                   1607902309: {'mean41': 23.667, 'mean43': 20.479, 'mean45': 26.415},
-                                   1607902310: {'mean41': 33.740, 'mean43': 22.100, 'mean45': 35.928},
-                                   1607902311: {'mean41': 50.265, 'mean43': 24.906, 'mean45': 51.948}}
+    expected_samples = {1607902308: {'mean41': 11458.0, 'mean43': 10795.0, 'mean45': 10200.0},
+                        1607902309: {'mean41': 7962.0, 'mean43': 3290.0, 'mean45': 12242.0},
+                        1607902310: {'mean41': 10073.0, 'mean43': 1621.0, 'mean45': 9513.0},
+                        1607902311: {'mean41': 16525.0, 'mean43': 2806.0, 'mean45': 16020.0}}
+    expected_normalized_samples = {1607902308: {'mean41': 11.458, 'mean43': 10.795, 'mean45': 10.200},
+                                   1607902309: {'mean41': 7.962, 'mean43': 3.290, 'mean45': 12.242},
+                                   1607902310: {'mean41': 10.073, 'mean43': 1.621, 'mean45': 9.513},
+                                   1607902311: {'mean41': 16.525, 'mean43': 2.806, 'mean45': 16.020}}
     expected_interfaces = {41: 'mean41',
                            43: 'mean43',
                            45: 'mean45'}

@@ -40,6 +40,7 @@ class Monitor(ABC):
 class SFlowConfig:
     data_key: str
     normalize_by: float
+    is_cumulative_data: bool = True
     csv_filename: str = 'sflow.csv'
     pandas_processing: bool = True
     sflowtool_cmd: str = "sflowtool"
@@ -84,6 +85,7 @@ class SFlowMonitor(Monitor):
             samples_df = self.samples_processor(self.output_file,
                                                 self.sflow_keys_to_monitor,
                                                 interfaces_naming,
+                                                is_cumulative_data=self.config.is_cumulative_data,
                                                 normalize_by=self.config.normalize_by)
             self.output_file.close()
             if self.config.delete_csv:
@@ -96,9 +98,12 @@ class SFlowMonitor(Monitor):
             return None
 
     @staticmethod
-    def get_samples_pandas(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
+    def get_samples_pandas(file, keys, interfaces_naming: Dict[int, str], is_cumulative_data=True, normalize_by=None):
         samples_df = pd.read_csv(file, names=keys, index_col=[0, 1])
         samples_df = samples_df.unstack()[keys[2]]
+        if is_cumulative_data:
+            # subtract the previous row (the data is cumulative) and remove the first row which is now NaN
+            samples_df = samples_df.diff().iloc[1:]
         interfaces_keys = set(interfaces_naming.keys())
         port_drop_list = list(filter(lambda k: k not in interfaces_keys, samples_df.keys()))
         samples_df.drop(columns=port_drop_list, inplace=True)
@@ -108,7 +113,7 @@ class SFlowMonitor(Monitor):
         return samples_df / 1.0 if not normalize_by else samples_df / normalize_by
 
     @staticmethod
-    def get_samples(file, keys, interfaces_naming: Dict[int, str], normalize_by=None):
+    def get_samples(file, keys, interfaces_naming: Dict[int, str], is_cumulative_data=True, normalize_by=None):
         samples: Dict[int, Dict[str, float]] = {}
         for line in file:
             when, where, what = line.split(',')
@@ -116,7 +121,6 @@ class SFlowMonitor(Monitor):
             where = int(where)
             # use data only from the relevant interfaces
             if where in interfaces_naming:
-                where = interfaces_naming[where]
                 if normalize_by:
                     what = int(what) / float(normalize_by)
                 else:
@@ -126,6 +130,9 @@ class SFlowMonitor(Monitor):
                 else:
                     samples[when] = {where: what}
         samples_df = pd.DataFrame.from_dict(samples, orient='index')
+        if is_cumulative_data:
+            # subtract the previous row (the data is cumulative) and remove the first row which is now NaN
+            samples_df = samples_df.diff().iloc[1:]
         samples_df.rename_axis(keys[0], inplace=True)
         samples_df.rename_axis(keys[1], axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
