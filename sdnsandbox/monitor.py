@@ -114,7 +114,7 @@ class SFlowMonitor(Monitor):
 
     @staticmethod
     def get_samples(file, keys, interfaces_naming: Dict[int, str], is_cumulative_data=True, normalize_by=None):
-        samples: Dict[int, Dict[str, float]] = {}
+        samples: Dict[int, Dict[int, float]] = {}
         for line in file:
             when, where, what = line.split(',')
             when = int(when)
@@ -136,4 +136,5 @@ class SFlowMonitor(Monitor):
         samples_df.rename_axis(keys[0], inplace=True)
         samples_df.rename_axis(keys[1], axis=1, inplace=True)
         samples_df.sort_index(axis=1, inplace=True)
+        samples_df.rename(lambda k: interfaces_naming[k], axis=1, inplace=True)
         return samples_df
