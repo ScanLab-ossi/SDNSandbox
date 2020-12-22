@@ -47,5 +47,6 @@ except KeyboardInterrupt:
     logging.fatal("Interrupted during experiment... Attempting to clean up and exiting...")
 finally:
     runner.stop_and_save()
-    logging.info('The experiment files can be found in %s', args.output_dir)
-    logging.info('NOTE: If the experiment was run inside a Docker container, the location depends on the volume mount')
+    logging.info('The experiment files can be found @ %s', args.output_dir)
+    logging.info('NOTE: If the experiment was run inside a Docker container,'
+                 ' the actual location depends on the volume mount')
