@@ -33,6 +33,10 @@
       {
         "type": "IQR",
         "iqr_filename": "iqr.json"
+      },
+      {
+        "type": "Plotting",
+        "plots_dirname": "plots"
       }
     ]
   }
