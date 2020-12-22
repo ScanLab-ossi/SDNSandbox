@@ -39,8 +39,8 @@ class Monitor(ABC):
 
 @dataclass
 class SFlowConfig:
-    data_key: str
-    normalize_by: float
+    data_key: str = 'ifInOctets'
+    normalize_by: float = 125000.0
     is_cumulative_data: bool = True
     csv_filename: str = 'sflow.csv'
     pandas_processing: bool = True

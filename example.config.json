@@ -25,9 +25,7 @@
       "pps_wavelength": 25
     },
     "monitor": {
-      "type": "sflow",
-      "data_key": "ifInOctets",
-      "normalize_by": 1048576
+      "type": "sflow"
     },
     "post_processors": [
       {
