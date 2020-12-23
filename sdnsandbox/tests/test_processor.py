@@ -51,5 +51,3 @@ class TestProcessor(TestCase):
                 self.assertTrue(isfile(path))
                 filenames.append(filename)
             self.assertEqual(filenames, os.listdir(plots_full_path))
-            from time import sleep
-            sleep(30)
