@@ -115,7 +115,7 @@ class DITGLoadGenerator(LoadGenerator):
                         logger.debug("Found crashed sender at %s, after %d seconds with cmd %s",
                                      sender.host.IP(),
                                      int(monotonic() - sender.start_time),
-                                     sender.process.args)
+                                     str(sender.process.args))
                         # make sure the log was already flushed before rerun
                         sender.logfile.flush()
                         # rerun sender
@@ -157,7 +157,7 @@ class DITGLoadGenerator(LoadGenerator):
 
     @staticmethod
     def run_sender(host, itg_send_cmd, logfile):
-        logfile.write(str(datetime.now()) + ": Starting ITGSend with cmd='" + itg_send_cmd + "'\n")
+        logfile.write(str(datetime.now()) + ": Starting ITGSend with cmd='" + str(itg_send_cmd) + "'\n")
         logfile.flush()
         itg_send = host.popen(itg_send_cmd, stderr=STDOUT, stdout=logfile)
         return itg_send
