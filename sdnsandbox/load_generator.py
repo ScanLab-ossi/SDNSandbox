@@ -72,7 +72,7 @@ class DITGConfig:
 
 class DITGLoadGenerator(LoadGenerator):
     Receiver = namedtuple("Receiver", "process, logfile")
-    Sender = namedtuple("Sender", "process, start_time, logfile")
+    Sender = namedtuple("Sender", "host, process, start_time, logfile")
 
     def __init__(self, config: DITGConfig):
         super().__init__()
@@ -106,16 +106,28 @@ class DITGLoadGenerator(LoadGenerator):
                 dest = self.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
-            success, timeout_terminated, failure = 0, 0, 0
+            success, timeout_terminated, failure, reruns = 0, 0, 0, 0
+            period_start = monotonic()
+            while monotonic() - period_start < self.config.period_duration_seconds:
+                for sender in self.senders:
+                    return_code = sender.process.poll()
+                    if return_code not in [0, None]:
+                        logger.debug("Found crashed sender at %s, after %d seconds with cmd %s",
+                                     sender.host.IP(),
+                                     int(monotonic() - sender.start_time),
+                                     sender.process.args)
+                        # make sure the log was already flushed before rerun
+                        sender.logfile.flush()
+                        # rerun sender
+                        self.run_sender(sender.host, sender.process.args, sender.logfile)
+                        reruns += 1
+                # avoid busy waiting
+                sleep(0.1)
             for sender in self.senders:
-                time_passed = monotonic() - sender.start_time
-                timeout = self.config.period_duration_seconds - time_passed
-                if timeout > 0.0:
-                    sleep(timeout)
                 return_code = sender.process.poll()
                 if return_code is None:
                     logger.debug("Sender timed out and will be killed: %s", sender.process.args)
-                    # forcibly stop senders that took too long, ignoring crashes
+                    # forcibly stop senders that took too long
                     sender.process.kill()
                     timeout_terminated += 1
                 elif return_code != 0:
@@ -127,9 +139,10 @@ class DITGLoadGenerator(LoadGenerator):
             logger.info(
                 "For period=%d we had "
                 "%d successfully completed senders, "
+                "%d sender reruns due to failure (probably a D-ITG issue), "
                 "%d senders we terminated due to timeout "
-                "and %d failed (probably a D-ITG issue) senders",
-                period, success, timeout_terminated, failure)
+                "and %d senders who finished the period in a failed state",
+                period, success, reruns, timeout_terminated, failure)
 
     def run_host_senders(self, host, dest, logs_path, period):
         host_senders = []
@@ -138,12 +151,16 @@ class DITGLoadGenerator(LoadGenerator):
             itg_send_cmd = 'ITGSend ' + opts[1]
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
             logfile = open(log_path, 'a')
-            start_time = monotonic()
-            logfile.write(str(datetime.now()) + ": Starting ITGSend with cmd='"+itg_send_cmd+"'\n")
-            logfile.flush()
-            itg_send = host.popen(itg_send_cmd, stderr=STDOUT, stdout=logfile)
-            host_senders.append(self.Sender(itg_send, start_time, logfile))
+            itg_send = self.run_sender(host, itg_send_cmd, logfile)
+            host_senders.append(self.Sender(host, itg_send, monotonic(), logfile))
         return host_senders
+
+    @staticmethod
+    def run_sender(host, itg_send_cmd, logfile):
+        logfile.write(str(datetime.now()) + ": Starting ITGSend with cmd='" + itg_send_cmd + "'\n")
+        logfile.flush()
+        itg_send = host.popen(itg_send_cmd, stderr=STDOUT, stdout=logfile)
+        return itg_send
 
     def stop_receivers(self):
         logger.info("Killing ITGRecv(s)...")
