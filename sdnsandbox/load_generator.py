@@ -314,7 +314,7 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         host_senders = []
         itg_send_opts = self.calculate_send_opts(period, dest)
         for opts in itg_send_opts.items():
-            nping_send_cmd = 'nping --udp -p %d --verbose %d ' % (self.config.listen_port, self.config.verbosity_level)
+            nping_send_cmd = 'nping --udp -p %d -v%d ' % (self.config.listen_port, self.config.verbosity_level)
             nping_send_cmd += opts[1]
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
             logfile = open(log_path, 'a')
