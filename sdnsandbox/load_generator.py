@@ -1,4 +1,5 @@
 import logging
+import subprocess
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
@@ -9,9 +10,12 @@ from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
 from time import monotonic, sleep
+from typing import IO, List
 import dacite
 
 from sdnsandbox.util import ensure_cmd_exists
+
+from mininet.node import Host
 
 
 class Protocol(Enum):
@@ -43,17 +47,31 @@ class LoadGeneratorFactory(object):
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
 
 
+@dataclass
+class Receiver:
+    process: subprocess.Popen
+    logfile: IO
+
+
+@dataclass
+class Sender:
+    host: Host
+    process: subprocess.Popen
+    start_time: float
+    logfile: IO
+
+
+@dataclass
 class LoadGenerator(ABC):
-    def __init__(self):
-        self.receivers = []
-        self.senders = []
+    receivers: List[Receiver]
+    senders: List[Sender]
 
     @abstractmethod
-    def start_receivers(self, network, output_path, logs_path=''):
+    def start_receivers(self, hosts: List[Host], output_path: str, logs_path=''):
         pass
 
     @abstractmethod
-    def run_senders(self, network, output_path, logs_path=''):
+    def run_senders(self, hosts: List[Host], output_path: str, logs_path=''):
         pass
 
     @abstractmethod
