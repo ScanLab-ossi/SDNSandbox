@@ -29,7 +29,7 @@ RUN \
     libsctp-dev \
     openvswitch-switch \
     d-itg \
-    netcat \
+    nmap \
     tcpdump \
 # Clean up packages.
     && apt-get clean
