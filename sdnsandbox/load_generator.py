@@ -42,6 +42,9 @@ class LoadGeneratorFactory:
             config = dacite.from_dict(data_class=DITGConfig, data=load_generator_conf,
                                       config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p)}))
             return DitgImixLoadGenerator(config)
+        elif load_generator_conf["type"] == "NPING-UDP-IMIX":
+            config = dacite.from_dict(data_class=NpingConfig, data=load_generator_conf)
+            return NpingUDPImixLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
 
@@ -231,3 +234,142 @@ class DitgImixLoadGenerator(LoadGenerator):
         else:
             raise RuntimeError("Unknown protocol defined for senders!")
         return send_opts
+
+
+@dataclass
+class NpingConfig:
+    periods: int
+    period_duration_seconds: int
+    pps_base_level: int
+    pps_amplitude: int
+    pps_wavelength: int
+    disable_cmd_ensure: bool = False
+    listen_port: int = 10000
+    verbosity_level: int = -1
+
+
+class NpingUDPImixLoadGenerator(LoadGenerator):
+    def __init__(self, config: NpingConfig):
+        super().__init__([], [])
+        failure_msg = "Can't setup Nping load generation!"
+        if not config.disable_cmd_ensure:
+            ensure_cmd_exists("ncat", failure_msg)
+            ensure_cmd_exists("nping", failure_msg)
+        self.config = config
+
+    def start_receivers(self, hosts, output_path, logs_path=''):
+        logger.info("Adding ncat listener to all network hosts")
+        if logs_path == '':
+            logs_path = pj(output_path, "logs", "receivers")
+            makedirs(logs_path)
+        itg_recv_cmd = 'while [ 1 ]; do ' \
+                       'echo [$(date)] Starting ncat;' \
+                       'ncat -4 -l %d --keep-open --udp --sh-exec "cat > /dev/null";' \
+                       'echo [$(date)] ncat Stopped;' \
+                       'done' % self.config.listen_port
+        self.receivers = []
+        for host in hosts:
+            log_path = pj(logs_path, "receiver-" + host.IP() + ".log")
+            logfile = open(log_path, 'w')
+            itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
+            self.receivers.append(Receiver(itg_recv, logfile))
+
+    def run_senders(self, hosts, output_path, logs_path=''):
+        logger.info("Running Npings")
+        if logs_path == '':
+            logs_path = pj(output_path, "logs", "senders")
+            makedirs(logs_path)
+        host_addresses = [host.IP() for host in hosts]
+        for period in range(self.config.periods):
+            for host_index, host in enumerate(hosts):
+                dest = self.calculate_destination(period, host_index, host_addresses)
+                host_senders = self.run_host_senders(host, dest, logs_path, period)
+                self.senders.extend(host_senders)
+            success, timeout_terminated, failure = 0, 0, 0
+            for sender in self.senders:
+                return_code = sender.process.poll()
+                if return_code is None:
+                    logger.debug("Sender timed out and will be killed: %s", sender.process.args)
+                    # forcibly stop senders that took too long
+                    sender.process.kill()
+                    timeout_terminated += 1
+                elif return_code != 0:
+                    failure += 1
+                else:
+                    success += 1
+                sender.logfile.close()
+            self.senders = []
+            logger.info(
+                "For period=%d we had "
+                "%d successfully completed senders, "
+                "%d senders we terminated due to timeout "
+                "and %d senders who finished the period in a failed state",
+                period, success, timeout_terminated, failure)
+
+    @staticmethod
+    def calculate_destination(period, host_id, other_addresses):
+        period_dest_index = (period - 1) + (host_id - 1)
+        return other_addresses[period_dest_index % len(other_addresses)]
+
+    def run_host_senders(self, host, dest, logs_path, period):
+        host_senders = []
+        itg_send_opts = self.calculate_send_opts(period, dest)
+        for opts in itg_send_opts.items():
+            nping_send_cmd = 'nping --udp -p %d --verbose %d ' % (self.config.listen_port, self.config.verbosity_level)
+            nping_send_cmd += opts[1]
+            log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
+            logfile = open(log_path, 'a')
+            nping_send = self.run_sender(host, nping_send_cmd, logfile)
+            host_senders.append(Sender(host, nping_send, monotonic(), logfile))
+        return host_senders
+
+    @staticmethod
+    def run_sender(host, nping_send_cmd, logfile):
+        logfile.write(str(datetime.now()) + ": Starting Nping with cmd='" + str(nping_send_cmd) + "'\n")
+        logfile.flush()
+        nping_send = host.popen(nping_send_cmd, stderr=STDOUT, stdout=logfile)
+        return nping_send
+
+    def calculate_send_opts(self, period, dest):
+        send_opts = {}
+        # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
+        period_pps = self.config.pps_base_level + int(
+            self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
+        # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
+        # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
+        # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
+        # To get a similar distribution with UDP:
+        # Constant packet size - 40B 30%
+        rate = int(0.3 * period_pps)
+        send_opts['send_40bytes'] = '--dest-ip %s --data-length 40 --rate %d --count %d' % \
+                                    (dest,
+                                     rate,
+                                     rate * self.config.period_duration_seconds)
+        # Approx. of the Normal Distribution for packet sizes - 55%
+        half_normal_pps = int(0.55 * 0.5 * period_pps)
+        quarter_normal_pps = half_normal_pps / 2
+        send_opts['send_normal_low'] = '--dest-ip %s --data-length 448 --rate %d --count %d' % \
+                                       (dest,
+                                        quarter_normal_pps,
+                                        quarter_normal_pps * self.config.period_duration_seconds)
+        send_opts['send_normal_mid'] = '--dest-ip %s --data-length 576 --rate %d --count %d' % \
+                                       (dest,
+                                        half_normal_pps,
+                                        half_normal_pps * self.config.period_duration_seconds)
+        send_opts['send_normal_high'] = '--dest-ip %s --data-length 704 --rate %d --count %d' % \
+                                        (dest,
+                                         quarter_normal_pps,
+                                         quarter_normal_pps * self.config.period_duration_seconds)
+        # Constant packet size - 1500B - 15%
+        rate /= 2
+        send_opts['send_1500B'] = '--dest-ip %s --data-length 1500 --rate %d --count %d' % \
+                                  (dest,
+                                   rate,
+                                   rate * self.config.period_duration_seconds)
+        return send_opts
+
+    def stop_receivers(self):
+        logger.info("Killing ncat(s)...")
+        for receiver in self.receivers:
+            receiver.process.terminate()
+            receiver.logfile.close()

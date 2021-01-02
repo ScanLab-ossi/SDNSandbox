@@ -16,8 +16,7 @@
       "test_ping_all_full": false
     },
     "load_generator": {
-      "type": "DITG",
-      "protocol": "UDP",
+      "type": "NPING-UDP-IMIX",
       "periods": 1200,
       "period_duration_seconds": 30,
       "pps_base_level": 150,
