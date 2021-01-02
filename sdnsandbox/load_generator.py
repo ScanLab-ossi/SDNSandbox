@@ -34,7 +34,7 @@ class Protocol(Enum):
 logger = logging.getLogger(__name__)
 
 
-class LoadGeneratorFactory(object):
+class LoadGeneratorFactory:
     @staticmethod
     def create(load_generator_conf):
         if load_generator_conf["type"] == "DITG":
