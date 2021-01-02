@@ -86,14 +86,17 @@ class DITGConfig:
     pps_base_level: int
     pps_amplitude: int
     pps_wavelength: int
+    disable_cmd_ensure: bool = False
     warmup_seconds: int = 0
 
 
 class DitgImixLoadGenerator(LoadGenerator):
     def __init__(self, config: DITGConfig):
-        super().__init__()
-        ensure_cmd_exists("ITGRecv", "Can't setup D-ITG load generation!")
-        ensure_cmd_exists("ITGSend", "Can't setup D-ITG load generation!")
+        super().__init__([], [])
+        failure_msg = "Can't setup D-ITG load generation!"
+        if not config.disable_cmd_ensure:
+            ensure_cmd_exists("ITGRecv", failure_msg)
+            ensure_cmd_exists("ITGSend", failure_msg)
         self.config = config
 
     def start_receivers(self, hosts, output_path, logs_path=''):
