@@ -1,6 +1,8 @@
 import time
 import logging
 import math
+from shutil import which
+
 from geopy.distance import geodesic
 from subprocess import run, PIPE
 from pkg_resources import resource_filename
@@ -68,3 +70,8 @@ def run_script(script_name, info_print, err_print):
     if result.stderr:
         err_print(result.stderr)
     result.check_returncode()
+
+
+def ensure_cmd_exists(cmd: str, doesnt_exist_meaning: str = ''):
+    if which(cmd) is None:
+        raise RuntimeError("Command %s is not available! %s" % (cmd, doesnt_exist_meaning))

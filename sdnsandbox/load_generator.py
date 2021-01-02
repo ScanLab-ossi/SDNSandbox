@@ -11,6 +11,8 @@ from subprocess import STDOUT
 from time import monotonic, sleep
 import dacite
 
+from sdnsandbox.util import ensure_cmd_exists
+
 
 class Protocol(Enum):
     UDP = 0
@@ -76,6 +78,8 @@ class DITGLoadGenerator(LoadGenerator):
 
     def __init__(self, config: DITGConfig):
         super().__init__()
+        ensure_cmd_exists("ITGRecv", "Can't setup D-ITG load generation!")
+        ensure_cmd_exists("ITGSend", "Can't setup D-ITG load generation!")
         self.config = config
 
     def start_receivers(self, hosts, output_path, logs_path=''):

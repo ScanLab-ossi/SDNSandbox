@@ -7,9 +7,8 @@ import dacite
 import pandas as pd
 from numpy import datetime64
 
-from sdnsandbox.util import run_script
+from sdnsandbox.util import run_script, ensure_cmd_exists
 from subprocess import Popen, STDOUT
-from shutil import which
 from os.path import join as pj
 from os import remove
 
@@ -54,8 +53,7 @@ class SFlowMonitor(Monitor):
     sflow_intf_index_key = "ifIndex"
 
     def __init__(self, config: SFlowConfig):
-        if which(config.sflowtool_cmd) is None:
-            raise RuntimeError("command %s is not available, can't setup sFlow monitoring" % config.sflowtool_cmd)
+        ensure_cmd_exists(cmd=config.sflowtool_cmd, doesnt_exist_meaning="Can't setup sFlow monitoring!")
         self.sflow_keys_to_monitor = [self.sflow_time_key, self.sflow_intf_index_key, config.data_key]
         self.config = config
         self.sflowtool_proc = None
