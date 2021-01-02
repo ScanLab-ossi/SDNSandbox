@@ -286,6 +286,10 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
                 self.senders.extend(host_senders)
             success, timeout_terminated, failure = 0, 0, 0
             for sender in self.senders:
+                time_spent = monotonic() - sender.start_time
+                time_left = self.config.period_duration_seconds - time_spent
+                if time_left > 0:
+                    sleep(time_left)
                 return_code = sender.process.poll()
                 if return_code is None:
                     logger.debug("Sender timed out and will be killed: %s", sender.process.args)
