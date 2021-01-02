@@ -200,9 +200,10 @@ class DitgImixLoadGenerator(LoadGenerator):
     def calculate_send_opts(self, period, dest):
         send_opts = {}
         # allow sender warmup period
-        duration_ms = (self.config.period_duration_seconds-self.config.warmup_seconds)*1000
+        duration_ms = (self.config.period_duration_seconds - self.config.warmup_seconds) * 1000
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
-        period_pps = self.config.pps_base_level + int(self.config.pps_amplitude*sin(2*pi*period/self.config.pps_wavelength))
+        period_pps = self.config.pps_base_level + int(
+            self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
         # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
