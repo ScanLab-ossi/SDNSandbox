@@ -37,8 +37,7 @@ logger = logging.getLogger(__name__)
 class LoadGeneratorFactory:
     @staticmethod
     def create(load_generator_conf):
-        if load_generator_conf["type"] == "DITG":
-
+        if load_generator_conf["type"] == "DITG-IMIX":
             config = dacite.from_dict(data_class=DITGConfig, data=load_generator_conf,
                                       config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p)}))
             return DitgImixLoadGenerator(config)
@@ -228,7 +227,6 @@ class DitgImixLoadGenerator(LoadGenerator):
                                                                                  duration_ms,
                                                                                  int(0.78 * period_pps))
             # Constant packet size - 1500B - 22%
-            pps_high = int(0.15 * period_pps)
             send_opts['send_1500B'] = '-a %s -T UDP -t %d -c 1500 -C %d' % (dest,
                                                                             duration_ms,
                                                                             int(0.22 * period_pps))

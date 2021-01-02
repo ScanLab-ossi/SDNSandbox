@@ -6,9 +6,10 @@ from sdnsandbox.load_generator import DitgImixLoadGenerator, LoadGeneratorFactor
 
 
 class TestLoadGenerator(TestCase):
-    def test_create_ditg_load_generator_from_example_config(self):
+    def test_create_ditg_imix_udp_load_generator_from_example_config(self):
         generator_conf = json.loads('''{
-                                        "type": "DITG",
+                                        "type": "DITG-IMIX",
+                                        "disable_cmd_ensure": true,
                                         "protocol": "UDP",
                                         "periods": 1200,
                                         "period_duration_seconds": 30,
@@ -48,7 +49,7 @@ class TestLoadGenerator(TestCase):
 
     def test_raise_exception_create_ditg_load_generator_unknown_protocol(self):
         generator_conf = json.loads('''{
-                                        "type": "DITG",
+                                        "type": "DITG-IMIX",
                                         "protocol": "MYP"
                                         }''')
         with self.assertRaises(ValueError) as cm:
