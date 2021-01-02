@@ -1,7 +1,7 @@
 import json
 from unittest import TestCase
 
-from sdnsandbox.load_generator import DITGLoadGenerator, LoadGeneratorFactory, Protocol, DITGConfig
+from sdnsandbox.load_generator import DitgImixLoadGenerator, LoadGeneratorFactory, Protocol, DITGConfig
 
 
 class TestLoadGenerator(TestCase):
@@ -16,7 +16,7 @@ class TestLoadGenerator(TestCase):
                                         "pps_wavelength": 25
                                       }''')
         generator = LoadGeneratorFactory().create(generator_conf)
-        self.assertIsInstance(generator, DITGLoadGenerator)
+        self.assertIsInstance(generator, DitgImixLoadGenerator)
         self.assertEqual(Protocol.UDP, generator.config.protocol)
         self.assertEqual(1200, generator.config.periods)
         self.assertEqual(30, generator.config.period_duration_seconds)

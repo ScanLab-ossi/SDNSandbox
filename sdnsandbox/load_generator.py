@@ -1,7 +1,6 @@
 import logging
 import subprocess
 from abc import ABC, abstractmethod
-from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -42,7 +41,7 @@ class LoadGeneratorFactory(object):
 
             config = dacite.from_dict(data_class=DITGConfig, data=load_generator_conf,
                                       config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p)}))
-            return DITGLoadGenerator(config)
+            return DitgImixLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
 
@@ -90,10 +89,7 @@ class DITGConfig:
     warmup_seconds: int = 0
 
 
-class DITGLoadGenerator(LoadGenerator):
-    Receiver = namedtuple("Receiver", "process, logfile")
-    Sender = namedtuple("Sender", "host, process, start_time, logfile")
-
+class DitgImixLoadGenerator(LoadGenerator):
     def __init__(self, config: DITGConfig):
         super().__init__()
         ensure_cmd_exists("ITGRecv", "Can't setup D-ITG load generation!")
@@ -115,7 +111,7 @@ class DITGLoadGenerator(LoadGenerator):
             log_path = pj(logs_path, "receiver-" + host.IP() + ".log")
             logfile = open(log_path, 'w')
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
-            self.receivers.append(self.Receiver(itg_recv, logfile))
+            self.receivers.append(Receiver(itg_recv, logfile))
 
     def run_senders(self, hosts, output_path, logs_path=''):
         logger.info("Running ITGSenders")
@@ -174,7 +170,7 @@ class DITGLoadGenerator(LoadGenerator):
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
             logfile = open(log_path, 'a')
             itg_send = self.run_sender(host, itg_send_cmd, logfile)
-            host_senders.append(self.Sender(host, itg_send, monotonic(), logfile))
+            host_senders.append(Sender(host, itg_send, monotonic(), logfile))
         return host_senders
 
     @staticmethod
