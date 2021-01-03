@@ -217,7 +217,8 @@ class DitgImixLoadGenerator(LoadGenerator):
                                                                                  duration_ms,
                                                                                  int(0.55 * period_pps))
             # Constant packet size - 1500B - 15%
-            send_opts['send_1500B'] = '-a %s -T UDP -t %d -c 1500 -C %d' % (dest,
+            # Actual UDP packet payload is 1472 after removing layer2-4 headers
+            send_opts['send_1500B'] = '-a %s -T UDP -t %d -c 1472 -C %d' % (dest,
                                                                             duration_ms,
                                                                             int(0.15 * period_pps))
         elif self.config.protocol == Protocol.TCP:
@@ -365,7 +366,8 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
                                          quarter_normal_pps * self.config.period_duration_seconds)
         # Constant packet size - 1500B - 15%
         rate /= 2
-        send_opts['send_1500B'] = '--dest-ip %s --data-length 1500 --rate %d --count %d' % \
+        # Actual UDP packet payload is 1472 after removing layer2-4 headers/footers
+        send_opts['send_1500B'] = '--dest-ip %s --data-length 1472 --rate %d --count %d' % \
                                   (dest,
                                    rate,
                                    rate * self.config.period_duration_seconds)
