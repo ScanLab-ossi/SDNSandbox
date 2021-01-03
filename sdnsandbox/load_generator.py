@@ -9,12 +9,14 @@ from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
 from time import monotonic, sleep
-from typing import IO, List
+from typing import IO, List, Dict
 import dacite
 
 from sdnsandbox.util import ensure_cmd_exists
 
 from mininet.node import Host
+
+logger = logging.getLogger(__name__)
 
 
 class Protocol(Enum):
@@ -31,18 +33,62 @@ class Protocol(Enum):
             raise ValueError("Unknown protocol=%s" % protocol)
 
 
-logger = logging.getLogger(__name__)
+class DestinationCalculator(ABC):
+    @abstractmethod
+    def calculate_destination(self, period, host_index, host_addresses):
+        pass
+
+    @staticmethod
+    def get_other_addresses(host_addresses, host_index):
+        other_addresses = list(host_addresses)
+        other_addresses.remove(host_addresses[host_index])
+        return other_addresses
+
+
+class RoundRobinDestinationCalculator(DestinationCalculator):
+    def calculate_destination(self, period, host_index, host_addresses):
+        other_addresses = self.get_other_addresses(host_addresses, host_index)
+        # adding the host_index to space out the destinations
+        period_dest_index = period + host_index
+        return other_addresses[period_dest_index % len(other_addresses)]
+
+
+@dataclass
+class StaticDeltaDestinationCalculator(DestinationCalculator):
+    # default of zero delta means the next host after the current host
+    delta: int = 0
+
+    def calculate_destination(self, period, host_index, host_addresses):
+        other_addresses = self.get_other_addresses(host_addresses, host_index)
+        return other_addresses[(host_index+self.delta) % len(other_addresses)]
+
+
+class DestinationCalculatorFactory:
+    @staticmethod
+    def create(destination_calculator_conf: Dict[str, str]):
+        strategy = destination_calculator_conf.get('strategy', 'static_delta')
+        if strategy == 'round_robin':
+            return RoundRobinDestinationCalculator()
+        elif strategy == 'static_delta':
+            return StaticDeltaDestinationCalculator(int(destination_calculator_conf.get('delta', 0)))
+        else:
+            raise ValueError("Unknown destination calculator strategy=%s" % strategy)
 
 
 class LoadGeneratorFactory:
     @staticmethod
     def create(load_generator_conf):
+
         if load_generator_conf["type"] == "DITG-IMIX":
             config = dacite.from_dict(data_class=DITGConfig, data=load_generator_conf,
-                                      config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p)}))
+                                      config=dacite.Config(type_hooks={Protocol: lambda p: Protocol.from_str(p),
+                                                                       DestinationCalculator: lambda dc:
+                                                                       DestinationCalculatorFactory.create(dc)}))
             return DitgImixLoadGenerator(config)
         elif load_generator_conf["type"] == "NPING-UDP-IMIX":
-            config = dacite.from_dict(data_class=NpingConfig, data=load_generator_conf)
+            config = dacite.from_dict(data_class=NpingConfig, data=load_generator_conf,
+                                      config=dacite.Config(type_hooks={DestinationCalculator: lambda dc:
+                                                                       DestinationCalculatorFactory.create(dc)}))
             return NpingUDPImixLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
@@ -89,6 +135,7 @@ class DITGConfig:
     pps_amplitude: int
     pps_wavelength: int
     disable_cmd_ensure: bool = False
+    destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
     warmup_seconds: int = 0
 
 
@@ -126,7 +173,7 @@ class DitgImixLoadGenerator(LoadGenerator):
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
-                dest = self.calculate_destination(period, host_index, host_addresses)
+                dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
             success, timeout_terminated, failure, reruns = 0, 0, 0, 0
@@ -191,11 +238,6 @@ class DitgImixLoadGenerator(LoadGenerator):
             receiver.process.terminate()
             receiver.logfile.close()
 
-    @staticmethod
-    def calculate_destination(period, host_id, other_addresses):
-        period_dest_index = (period - 1) + (host_id - 1)
-        return other_addresses[period_dest_index % len(other_addresses)]
-
     def calculate_send_opts(self, period, dest):
         send_opts = {}
         # allow sender warmup period
@@ -244,6 +286,7 @@ class NpingConfig:
     pps_amplitude: int
     pps_wavelength: int
     disable_cmd_ensure: bool = False
+    destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
     listen_port: int = 10000
     verbosity_level: int = -1
 
@@ -282,7 +325,7 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
-                dest = self.calculate_destination(period, host_index, host_addresses)
+                dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
                 host_senders = self.run_host_senders(host, dest, logs_path, period)
                 self.senders.extend(host_senders)
             success, timeout_terminated, failure = 0, 0, 0
@@ -309,11 +352,6 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
                 "%d senders we terminated due to timeout "
                 "and %d senders who finished the period in a failed state",
                 period, success, timeout_terminated, failure)
-
-    @staticmethod
-    def calculate_destination(period, host_id, other_addresses):
-        period_dest_index = (period - 1) + (host_id - 1)
-        return other_addresses[period_dest_index % len(other_addresses)]
 
     def run_host_senders(self, host, dest, logs_path, period):
         host_senders = []
