@@ -109,13 +109,17 @@ class ITZTopologyCreator(SDNSandboxTopologyCreator):
             node_index_value = int(n.attrib['id'])
             data_set = n.findall(ns + 'data')
             for d in data_set:
-                if d.attrib['key'] == node_label_name:
-                    # get rid of all bad characters from names so they can be used later without issues
-                    node_name_value = remove_bad_chars(d.text, bad_chars="\\/ `*_{}[]()>#+-.,!$?'")
-                if d.attrib['key'] == node_longitude_name and d.text:
-                    node_longitude_value = d.text
-                if d.attrib['key'] == node_latitude_name and d.text:
-                    node_latitude_value = d.text
+                logging.debug("Processing data node: %s with text=%s", d.attrib, d.text)
+                if d.text:
+                    if d.attrib['key'] == node_label_name:
+                        # get rid of all bad characters from names so they can be used later without issues
+                        node_name_value = remove_bad_chars(d.text, bad_chars="\\/ `*_{}[]()>#+-.,!$?'")
+                    if d.attrib['key'] == node_longitude_name and d.text:
+                        node_longitude_value = d.text
+                    if d.attrib['key'] == node_latitude_name and d.text:
+                        node_latitude_value = d.text
+                else:
+                    logging.debug("Text is None, skipping")
             if node_name_value == 'None':
                 logger.debug("Found None as node name for index=%s - invalidating and skipping", node_index_value)
                 continue
@@ -163,7 +167,6 @@ class ITZTopologyCreator(SDNSandboxTopologyCreator):
             src, dst = switches.get(src_id), switches.get(dst_id)
             if src is None or dst is None:
                 logger.debug("Edge src/dst not in valid switch list - skipping Edge=%s", e.attrib)
-                print("reject "+str(e.attrib))
                 continue
             latency = latency_function(src.lat, src.long, dst.lat, dst.long)
             switch_links.append(Link(src.ID, dst.ID, '{:.6f}ms'.format(latency)))
