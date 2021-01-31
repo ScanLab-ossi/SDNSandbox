@@ -31,8 +31,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(prog="sdnsandbox")
     parser.add_argument("-c", "--config", required=True, help="JSON configuration file")
     parser.add_argument("-o", "--output-dir", required=True, help="The experiment output directory")
-    parser.add_argument("-d", "--debug", action="store_true", help="Set mininet verbosity to high (debug level)")
-    parser.add_argument("--mininet-debug", action="store_true", help="Set mininet verbosity to high (debug level)")
+    parser.add_argument("-d", "--debug", action="store_true", help="Set SDNSandbox verbosity to debug level")
+    parser.add_argument("--mininet-debug", action="store_true", help="Set mininet verbosity to debug level")
     return parser.parse_args()
 
 
