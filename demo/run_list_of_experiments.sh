@@ -21,10 +21,13 @@ fi
 
 ROOT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
-for NETWORK in `cat $ROOT_DIR/ISP_list.txt` ; do
-  echo Running experiment for: $NETWORK
-  export NETWORK
-  "$ROOT_DIR"/run_experiment.sh
+for NETWORK in $(cat "$ROOT_DIR"/ISP_list.txt) ; do
+  echo Running experiment for: "$NETWORK"
+  DATA_PATH=$EXP_DATA_PATH/SDNSandbox-$NETWORK
+  echo Will save experiment output in "$DATA_PATH"
+  mkdir $DATA_PATH
+  sed s/Aarnet/$NETWORK/g "$ROOT_DIR"/../example.config.json > $DATA_PATH/config.json
+  EXP_DATA_PATH=$DATA_PATH NETWORK=$NETWORK "$ROOT_DIR"/run_experiment.sh
   # stop if failure occurred
   [ $? != 0 ] && echo "Failure Occurred! Stopping..." && break
 done
