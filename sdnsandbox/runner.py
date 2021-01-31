@@ -72,9 +72,12 @@ class Runner(object):
             dump(asdict(network_data), json_file, sort_keys=True, indent=4)
         interfaces_naming = self.get_interfaces_naming(self.data.interfaces_translation, network_data.interfaces)
         monitoring_data_df = self.data.monitor.process_monitoring_data(interfaces_naming)
-        logger.info("Saving samples as %s", self.data.hd5_filename)
-        monitoring_data_df.to_hdf(pj(self.data.output_dir, self.data.hd5_filename), key=self.data.hd5_key)
-        self.post_process(monitoring_data_df)
+        if monitoring_data_df:
+            logger.info("Saving samples as %s", self.data.hd5_filename)
+            monitoring_data_df.to_hdf(pj(self.data.output_dir, self.data.hd5_filename), key=self.data.hd5_key)
+            self.post_process(monitoring_data_df)
+        else:
+            logger.error("No monitoring data to process or save")
         self.data.load_generator.stop_receivers()
         self.data.network.stop()
 
