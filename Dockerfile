@@ -8,54 +8,41 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
+# sflowtool build dependencies
     git \
     ca-certificates \
     g++ \
     make \
     automake \
     autoconf \
-    openssh-server \
-    openssh-client \
-    bc \
-    unzip \
-    wget \
-    iputils-ping \
-    iproute2 \
-    net-tools \
+# python dependencies
     python3 \
     python3-pip \
     python3-setuptools \
-    sudo \
-    libsctp-dev \
+# OvS
     openvswitch-switch \
+# D-ITG
     d-itg \
+# Nping
     nmap \
-    tcpdump \
+# Mininet & deps
+    mininet \
+    iproute2 \
 # Clean up packages.
     && apt-get clean
 
-# HACK around https://github.com/dotcloud/docker/issues/5490
-RUN cp /usr/sbin/tcpdump /usr/bin/tcpdump
-
 # install sflowtool
 WORKDIR /tmp
-RUN git clone http://github.com/sflow/sflowtool \
+RUN git clone https://github.com/sflow/sflowtool \
     && cd sflowtool \
     && ./boot.sh \
     && ./configure \
     && make \
     && make install
 
-# install mininet @ a python3-compatible tag
-WORKDIR /tmp
-RUN git clone git://github.com/mininet/mininet \
-    && cd mininet \
-    && git checkout -b 2.3.0d5 \
-    && ./util/install.sh -s . -nfv
-
 # Install python requirements
 ADD requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 WORKDIR /tmp
 ADD sdnsandbox ./sdnsandbox
