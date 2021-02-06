@@ -75,7 +75,7 @@ class PlottingProcessor(Processor):
     def process(self, sampling_df: pd.DataFrame, output_path: str):
         plots_dir = pj(output_path, self.plots_dirname)
         logger.info("Creating directory " + plots_dir + " for plots")
-        makedirs(plots_dir)
+        makedirs(plots_dir, exist_ok=True)
         # this is needed for proper time-series plots
         pd.plotting.register_matplotlib_converters()
         for column in sampling_df.keys():

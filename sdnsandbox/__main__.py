@@ -38,7 +38,7 @@ def parse_arguments():
 
 args = parse_arguments()
 logs_path = pj(args.output_dir, "logs")
-makedirs(logs_path)
+makedirs(logs_path, exist_ok=True)
 setup_logging(args.debug, args.mininet_debug, logs_path)
 runner = RunnerFactory.create(args.config, args.output_dir, logs_path)
 try:

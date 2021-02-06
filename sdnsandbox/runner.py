@@ -58,12 +58,12 @@ class Runner(object):
         self.data.network.start()
         hosts = self.data.network.get_hosts()
         receivers_logs_path = pj(self.data.logs_dir, "receivers")
-        makedirs(receivers_logs_path)
-        self.data.load_generator.start_receivers(hosts, self.data.output_dir, logs_path=receivers_logs_path)
+        makedirs(receivers_logs_path, exist_ok=True)
+        self.data.load_generator.start_receivers(hosts, logs_path=receivers_logs_path)
         self.data.monitor.start_monitoring(self.data.output_dir)
         senders_logs_path = pj(self.data.logs_dir, "senders")
-        makedirs(senders_logs_path)
-        self.data.load_generator.run_senders(hosts, self.data.output_dir, logs_path=senders_logs_path)
+        makedirs(senders_logs_path, exist_ok=True)
+        self.data.load_generator.run_senders(hosts, logs_path=senders_logs_path)
 
     def stop_and_save(self):
         network_data = self.data.network.get_network_data()

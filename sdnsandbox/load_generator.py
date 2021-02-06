@@ -114,11 +114,11 @@ class LoadGenerator(ABC):
     senders: List[Sender]
 
     @abstractmethod
-    def start_receivers(self, hosts: List[Host], output_path: str, logs_path=''):
+    def start_receivers(self, hosts: List[Host], logs_path):
         pass
 
     @abstractmethod
-    def run_senders(self, hosts: List[Host], output_path: str, logs_path=''):
+    def run_senders(self, hosts: List[Host], logs_path):
         pass
 
     @abstractmethod
@@ -148,11 +148,8 @@ class DitgImixLoadGenerator(LoadGenerator):
             ensure_cmd_exists("ITGSend", failure_msg)
         self.config = config
 
-    def start_receivers(self, hosts, output_path, logs_path=''):
+    def start_receivers(self, hosts, logs_path):
         logger.info("Adding ITGRecv to all network hosts")
-        if logs_path == '':
-            logs_path = pj(output_path, "logs", "receivers")
-            makedirs(logs_path)
         itg_recv_cmd = 'while [ 1 ]; do ' \
                        'echo [$(date)] Starting ITGRecv;' \
                        'ITGRecv;' \
@@ -165,11 +162,8 @@ class DitgImixLoadGenerator(LoadGenerator):
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(Receiver(itg_recv, logfile))
 
-    def run_senders(self, hosts, output_path, logs_path=''):
+    def run_senders(self, hosts, output_path, logs_path):
         logger.info("Running ITGSenders")
-        if logs_path == '':
-            logs_path = pj(output_path, "logs", "senders")
-            makedirs(logs_path)
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
@@ -300,11 +294,8 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             ensure_cmd_exists("nping", failure_msg)
         self.config = config
 
-    def start_receivers(self, hosts, output_path, logs_path=''):
+    def start_receivers(self, hosts, output_path, logs_path):
         logger.info("Adding ncat listener to all network hosts")
-        if logs_path == '':
-            logs_path = pj(output_path, "logs", "receivers")
-            makedirs(logs_path)
         itg_recv_cmd = 'while [ 1 ]; do ' \
                        'echo [$(date)] Starting ncat;' \
                        'ncat -4 -l %d --keep-open --udp --sh-exec "cat > /dev/null";' \
@@ -317,11 +308,8 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(Receiver(itg_recv, logfile))
 
-    def run_senders(self, hosts, output_path, logs_path=''):
+    def run_senders(self, hosts, output_path, logs_path):
         logger.info("Running Npings")
-        if logs_path == '':
-            logs_path = pj(output_path, "logs", "senders")
-            makedirs(logs_path)
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
