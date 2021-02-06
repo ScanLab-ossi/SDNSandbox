@@ -40,6 +40,7 @@ args = parse_arguments()
 logs_path = pj(args.output_dir, "logs")
 makedirs(logs_path, exist_ok=True)
 setup_logging(args.debug, args.mininet_debug, logs_path)
+logging.info("Using %s as output dir", args.output_dir)
 runner = RunnerFactory.create(args.config, args.output_dir, logs_path)
 try:
     runner.run()
