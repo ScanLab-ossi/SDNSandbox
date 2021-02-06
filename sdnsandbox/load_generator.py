@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from math import pi, sin
-from os import makedirs
 from os.path import join as pj
 from subprocess import STDOUT
 from time import monotonic, sleep
@@ -162,7 +161,7 @@ class DitgImixLoadGenerator(LoadGenerator):
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(Receiver(itg_recv, logfile))
 
-    def run_senders(self, hosts, output_path, logs_path):
+    def run_senders(self, hosts, logs_path):
         logger.info("Running ITGSenders")
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
@@ -294,7 +293,7 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             ensure_cmd_exists("nping", failure_msg)
         self.config = config
 
-    def start_receivers(self, hosts, output_path, logs_path):
+    def start_receivers(self, hosts, logs_path):
         logger.info("Adding ncat listener to all network hosts")
         itg_recv_cmd = 'while [ 1 ]; do ' \
                        'echo [$(date)] Starting ncat;' \
@@ -308,7 +307,7 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             itg_recv = host.popen(itg_recv_cmd, shell=True, stderr=STDOUT, stdout=logfile)
             self.receivers.append(Receiver(itg_recv, logfile))
 
-    def run_senders(self, hosts, output_path, logs_path):
+    def run_senders(self, hosts, logs_path):
         logger.info("Running Npings")
         host_addresses = [host.IP() for host in hosts]
         for period in range(self.config.periods):
