@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, asdict
 from enum import Enum
-from json import dump, load
+from json import dump, dumps, load
 from os import makedirs
 from typing import Dict, Callable, List
 from os.path import join as pj
@@ -20,6 +20,7 @@ class RunnerFactory:
     def create(config_path: str, output_dir: str, logs_dir: str):
         with open(config_path) as conf_file:
             conf = load(conf_file)['runner']
+            logger.info("Loaded Runner Configuration:\n%s", dumps(conf, indent=4))
             conf['load_generator'] = LoadGeneratorFactory.create(conf['load_generator'])
             conf['monitor'] = MonitorFactory.create(conf['monitor'])
             conf['network'] = SDNSandboxNetworkFactory.create(conf['network'])
