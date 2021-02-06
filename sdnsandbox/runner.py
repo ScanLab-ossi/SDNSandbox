@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class RunnerFactory:
     @staticmethod
     def create(config_path: str, output_dir: str, logs_dir: str):
+        logger.info("Opening config JSON at %s", config_path)
         with open(config_path) as conf_file:
             conf = load(conf_file)['runner']
             logger.info("Loaded Runner Configuration:\n%s", dumps(conf, indent=4))
