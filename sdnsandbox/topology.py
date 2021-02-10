@@ -66,6 +66,8 @@ class SDNSandboxTopologyCreator(object):
             topo.addLink(topo_switch, host, bw=self.host_bandwidth)
         created_link_pairs = set()
         for link in self.switch_links:
+            if link.first_id == link.second_id:
+                continue
             sorted_ids = sorted([link.first_id, link.second_id])
             id_tuple = (sorted_ids[0], sorted_ids[1])
             if id_tuple not in created_link_pairs:
