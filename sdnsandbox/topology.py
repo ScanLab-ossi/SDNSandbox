@@ -64,9 +64,14 @@ class SDNSandboxTopologyCreator(object):
             host = topo.addHost(topo_switch_name+'-H')
             # link each switch and its host
             topo.addLink(topo_switch, host, bw=self.host_bandwidth)
+        created_link_pairs = set()
         for link in self.switch_links:
-            topo.addLink('s'+str(link.first_id), 's'+str(link.second_id),
-                         bw=self.switch_bandwidth, delay=link.mininet_latency)
+            sorted_ids = sorted([link.first_id, link.second_id])
+            id_tuple = (sorted_ids[0], sorted_ids[1])
+            if id_tuple not in created_link_pairs:
+                topo.addLink('s'+str(link.first_id), 's'+str(link.second_id),
+                             bw=self.switch_bandwidth, delay=link.mininet_latency)
+                created_link_pairs.add(id_tuple)
         return topo
 
 
