@@ -133,6 +133,7 @@ class DITGConfig:
     pps_base_level: int
     pps_amplitude: int
     pps_wavelength: int
+    rate_factor_by_hosts: bool = True
     disable_cmd_ensure: bool = False
     destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
     warmup_seconds: int = 0
@@ -164,10 +165,13 @@ class DitgImixLoadGenerator(LoadGenerator):
     def run_senders(self, hosts, logs_path):
         logger.info("Running ITGSenders")
         host_addresses = [host.IP() for host in hosts]
+        rate_factor = 1.0
+        if self.config.rate_factor_by_hosts:
+            rate_factor /= len(hosts)
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
                 dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
-                host_senders = self.run_host_senders(host, dest, logs_path, period)
+                host_senders = self.run_host_senders(host, dest, logs_path, period, rate_factor)
                 self.senders.extend(host_senders)
             success, timeout_terminated, failure, reruns = 0, 0, 0, 0
             period_start = monotonic()
@@ -207,9 +211,9 @@ class DitgImixLoadGenerator(LoadGenerator):
                 "and %d senders who finished the period in a failed state",
                 period, success, reruns, timeout_terminated, failure)
 
-    def run_host_senders(self, host, dest, logs_path, period):
+    def run_host_senders(self, host, dest, logs_path, period, rate_factor):
         host_senders = []
-        itg_send_opts = self.calculate_send_opts(period, dest)
+        itg_send_opts = self.calculate_send_opts(period, dest, rate_factor)
         for opts in itg_send_opts.items():
             itg_send_cmd = 'ITGSend ' + opts[1]
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
@@ -231,13 +235,14 @@ class DitgImixLoadGenerator(LoadGenerator):
             receiver.process.terminate()
             receiver.logfile.close()
 
-    def calculate_send_opts(self, period, dest):
+    def calculate_send_opts(self, period, dest, rate_factor):
         send_opts = {}
         # allow sender warmup period
         duration_ms = (self.config.period_duration_seconds - self.config.warmup_seconds) * 1000
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
         period_pps = self.config.pps_base_level + int(
             self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
+        period_pps *= rate_factor
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
         # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
@@ -278,6 +283,7 @@ class NpingConfig:
     pps_base_level: int
     pps_amplitude: int
     pps_wavelength: int
+    rate_factor_by_hosts: bool = True
     disable_cmd_ensure: bool = False
     destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
     listen_port: int = 10000
@@ -310,10 +316,13 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
     def run_senders(self, hosts, logs_path):
         logger.info("Running Npings")
         host_addresses = [host.IP() for host in hosts]
+        rate_factor = 1.0
+        if self.config.rate_factor_by_hosts:
+            rate_factor /= len(hosts)
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
                 dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
-                host_senders = self.run_host_senders(host, dest, logs_path, period)
+                host_senders = self.run_host_senders(host, dest, logs_path, period, rate_factor)
                 self.senders.extend(host_senders)
             success, timeout_terminated, failure = 0, 0, 0
             for sender in self.senders:
@@ -340,9 +349,9 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
                 "and %d senders who finished the period in a failed state",
                 period, success, timeout_terminated, failure)
 
-    def run_host_senders(self, host, dest, logs_path, period):
+    def run_host_senders(self, host, dest, logs_path, period, rate_factor):
         host_senders = []
-        itg_send_opts = self.calculate_send_opts(period, dest)
+        itg_send_opts = self.calculate_send_opts(period, dest, rate_factor)
         for opts in itg_send_opts.items():
             nping_send_cmd = 'nping --udp -p %d -v%d ' % (self.config.listen_port, self.config.verbosity_level)
             nping_send_cmd += opts[1]
@@ -359,11 +368,12 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         nping_send = host.popen(nping_send_cmd, stderr=STDOUT, stdout=logfile)
         return nping_send
 
-    def calculate_send_opts(self, period, dest):
+    def calculate_send_opts(self, period, dest, rate_factor):
         send_opts = {}
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
         period_pps = self.config.pps_base_level + int(
             self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
+        period_pps *= rate_factor
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
         # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%
