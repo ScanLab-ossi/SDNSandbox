@@ -60,7 +60,7 @@ class StaticDeltaDestinationCalculator(DestinationCalculator):
 
     def calculate_destination(self, period, host_index, host_addresses):
         other_addresses = self.get_other_addresses(host_addresses, host_index)
-        return other_addresses[(host_index+self.delta) % len(other_addresses)]
+        return other_addresses[(host_index + self.delta) % len(other_addresses)]
 
 
 class DestinationCalculatorFactory:
@@ -88,7 +88,7 @@ class LoadGeneratorFactory:
         elif load_generator_conf["type"] == "NPING-UDP-IMIX":
             config = dacite.from_dict(data_class=NpingConfig, data=load_generator_conf,
                                       config=dacite.Config(type_hooks={DestinationCalculator: lambda dc:
-                                                                       DestinationCalculatorFactory.create(dc)}))
+                                      DestinationCalculatorFactory.create(dc)}))
             return NpingUDPImixLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
@@ -389,14 +389,14 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
         period_pps = self.config.pps_base_level + int(
             self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
-        min_split = 0.55 * 0.25 # normal quarter
-        min_pps = self.config.pps_base_level - self.config.pps_amplitude 
-        min_rate_factor = self.config.min_allowed_rate / ( min_split * min_pps )
+        min_split = 0.55 * 0.25  # normal quarter
+        min_pps = self.config.pps_base_level - self.config.pps_amplitude
+        min_rate_factor = self.config.min_allowed_rate / (min_split * min_pps)
         if rate_factor >= min_rate_factor:
             period_pps *= rate_factor
         else:
             logger.debug(f"Using minimal rate factor {min_rate_factor} instead of requested rate factor {rate_factor}" +
-                        f" to allow the minimal rate to be {self.config.min_allowed_rate}")
+                         f" to allow the minimal rate to be {self.config.min_allowed_rate}")
             period_pps *= min_rate_factor
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
