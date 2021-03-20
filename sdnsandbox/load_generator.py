@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from math import pi, sin
+from multiprocessing import Process
 from os.path import join as pj
 from subprocess import STDOUT
 from time import monotonic, sleep
@@ -323,11 +324,22 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             logger.info(f"Using amount of hosts ({hosts_count}) as lowering factor")
             rate_factor /= hosts_count
         logger.info(f"Using rate_factor of {rate_factor} to lower load on the system")
+        host_loaders = []
+        for host_index, host in enumerate(hosts):
+            host_loaders.append(
+                Process(
+                    target=self.run_host_load,
+                    args=(host, host_addresses, host_index, logs_path, rate_factor)
+                )
+            )
+        for host_l in host_loaders:
+            host_l.join()
+
+    def run_host_load(self, host, host_addresses, host_index, logs_path, rate_factor):
         for period in range(self.config.periods):
-            for host_index, host in enumerate(hosts):
-                dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
-                host_senders = self.run_host_senders(host, dest, logs_path, period, rate_factor)
-                self.senders.extend(host_senders)
+            dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
+            host_senders = self.run_host_senders(host, dest, logs_path, period, rate_factor)
+            self.senders.extend(host_senders)
             success, timeout_terminated, failure = 0, 0, 0
             for sender in self.senders:
                 time_spent = monotonic() - sender.start_time
