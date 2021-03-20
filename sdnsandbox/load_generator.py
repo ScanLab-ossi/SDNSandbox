@@ -283,7 +283,8 @@ class NpingConfig:
     pps_base_level: int
     pps_amplitude: int
     pps_wavelength: int
-    rate_factor_by_hosts: bool = True
+    rate_factor_by_hosts: bool = False
+    min_allowed_rate: int = 10
     disable_cmd_ensure: bool = False
     destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
     listen_port: int = 10000
@@ -318,7 +319,10 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         host_addresses = [host.IP() for host in hosts]
         rate_factor = 1.0
         if self.config.rate_factor_by_hosts:
-            rate_factor /= len(hosts)
+            hosts_count = len(hosts)
+            logger.info(f"Using amount of hosts ({hosts_count}) as lowering factor")
+            rate_factor /= hosts_count
+        logger.info(f"Using rate_factor of {rate_factor} to lower load on the system")
         for period in range(self.config.periods):
             for host_index, host in enumerate(hosts):
                 dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
@@ -373,7 +377,15 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         # 2pi is the regular wavelength of sine, so we divide it by the required wavelength to get the amplitude change
         period_pps = self.config.pps_base_level + int(
             self.config.pps_amplitude * sin(2 * pi * period / self.config.pps_wavelength))
-        period_pps *= rate_factor
+        min_split = 0.55 * 0.25 # normal quarter
+        min_pps = self.config.pps_base_level - self.config.pps_amplitude 
+        min_rate_factor = self.config.min_allowed_rate / ( min_split * min_pps )
+        if rate_factor >= min_rate_factor:
+            period_pps *= rate_factor
+        else:
+            logger.debug(f"Using minimal rate factor {min_rate_factor} instead of requested rate factor {rate_factor}" +
+                        f" to allow the minimal rate to be {self.config.min_allowed_rate}")
+            period_pps *= min_rate_factor
         # All values based roughly on http://www.caida.org/research/traffic-analysis/AIX/plen_hist/
         # The IMIX split shown was ~30% 40B, ~55% normal around 576B, ~15% 1500B
         # The 190 standard deviation makes 3-sigma between 50-1400 packet sizes be 99,7%

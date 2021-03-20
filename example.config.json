@@ -21,10 +21,12 @@
       "period_duration_seconds": 30,
       "pps_base_level": 150,
       "pps_amplitude": 100,
-      "pps_wavelength": 25
+      "pps_wavelength": 25,
+      "rate_factor_by_hosts": true
     },
     "monitor": {
-      "type": "sflow"
+      "type": "sflow",
+      "pandas_processing": false
     },
     "post_processors": [
       {
