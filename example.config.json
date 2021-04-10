@@ -22,7 +22,8 @@
       "pps_base_level": 150,
       "pps_amplitude": 100,
       "pps_wavelength": 25,
-      "rate_factor_by_hosts": true
+      "rate_factor_by_hosts": true,
+      "min_allowed_rate": 1
     },
     "monitor": {
       "type": "sflow",
