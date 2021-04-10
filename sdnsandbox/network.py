@@ -52,13 +52,14 @@ class SDNSandboxNetworkData:
 
 class SDNSandboxNetwork:
     def __init__(self, config: SDNSandboxNetworkConfig):
-        topology = config.topology_creator.create()
-        self.net = Mininet(topo=topology, controller=lambda unneeded: config.controller, link=TCLink)
         self.config = config
         self.interfaces: Dict[int, Interface] = {}
+        self.net = None
 
     def start(self):
         """Create network and start it"""
+        topology = config.topology_creator.create()
+        self.net = Mininet(topo=topology, controller=lambda unneeded: config.controller, link=TCLink)
         self.net.start()
 
         logger.info("Waiting for the controller to finish network setup...")
@@ -73,11 +74,14 @@ class SDNSandboxNetwork:
         return self.net
 
     def stop(self):
+        if self.net==None: raise RuntimeError("Can't run this when the network is not started first!")
         logger.info("Stopping the network...")
         self.net.stop()
+        self.net = None
         self.interfaces = {}
 
     def get_hosts(self) -> List[Host]:
+        if self.net==None: raise RuntimeError("Can't run this when the network is not started first!")
         return self.net.hosts
 
     @staticmethod
@@ -114,9 +118,11 @@ class SDNSandboxNetwork:
         return interfaces
 
     def get_interfaces(self) -> Dict[int, Interface]:
+        if self.net==None: raise RuntimeError("Can't run this when the network is not started first!")
         return self.interfaces
 
     def get_network_data(self) -> SDNSandboxNetworkData:
+        if self.net==None: raise RuntimeError("Can't run this when the network is not started first!")
         return SDNSandboxNetworkData(self.interfaces,
                                      self.config.topology_creator.switches,
                                      self.config.topology_creator.switch_links)
