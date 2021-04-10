@@ -50,4 +50,4 @@ class TestProcessor(TestCase):
                 path = pj(plots_full_path, filename)
                 self.assertTrue(isfile(path))
                 filenames.append(filename)
-            self.assertEqual(filenames, os.listdir(plots_full_path))
+            self.assertEqual(filenames, sorted(os.listdir(plots_full_path)))

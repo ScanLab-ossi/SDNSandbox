@@ -19,12 +19,17 @@ class TestNetwork(TestCase):
 3: s3-eth2@s0-eth3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc htb master ovs-system state UP group default qlen 1000
     link/ether 86:57:62:6c:06:1b brd ff:ff:ff:ff:ff:ff
     '''
-    expected_net_data_json = '''{
+    expected_net_data_dict = {
     "interfaces": {
-        "13": {
+        13: {
             "name": "name13",
             "net_meaning": "mean13",
             "num": 13
+        },
+        15: {
+            "name": "name15",
+            "net_meaning": "mean15",
+            "num": 15
         }
     },
     "switch_links": [
@@ -35,25 +40,31 @@ class TestNetwork(TestCase):
         }
     ],
     "switches": {
-        "13": {
+        13: {
             "ID": 13,
-            "name": "thirteen"
+            "name": "name13"
+        },
+        15: {
+            "ID": 15,
+            "name": "name15"
         }
     }
-}'''
+}
     switch_num_to_name = {0: 'zero', 3: 'three'}
     relevant_interfaces = {3: Interface(3, 's3-eth2@s0-eth3', 'three-eth2@zero-eth3')}
 
     def test_get_network_data(self):
-        switches = {13: Switch(13, 'thirteen')}
+        switches = {13: Switch(13, 'name13'), 15: Switch(15, 'name15')}
         switch_links = [Link(13, 15, '1.234567ms')]
         topology_creator_mock = SDNSandboxTopologyCreator(switches, switch_links, 0, 0)
         controller = Controller('controller')
         mock_config = SDNSandboxNetworkConfig(topology_creator_mock, controller)
         net = SDNSandboxNetwork(mock_config)
-        net.interfaces = {13: Interface(13, 'name13', 'mean13')}
+        # override start check
+        net.net = True
+        net.interfaces = {13: Interface(13, 'name13', 'mean13'), 15: Interface(15, 'name15', 'mean15')}
         network_data = net.get_network_data()
-        self.assertEqual(self.expected_net_data_json, dumps(asdict(network_data), sort_keys=True, indent=4))
+        self.assertEqual(self.expected_net_data_dict, asdict(network_data))
 
     def test_get_interface_net_meaning(self):
         net_meaning = SDNSandboxNetwork.get_interface_net_meaning('s3-eth2@s0-eth3', self.switch_num_to_name)
