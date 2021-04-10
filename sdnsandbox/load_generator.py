@@ -326,12 +326,13 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
         logger.info(f"Using rate_factor of {rate_factor} to lower load on the system")
         host_loaders = []
         for host_index, host in enumerate(hosts):
-            host_loaders.append(
-                Process(
+           p = Process(
                     target=self.run_host_load,
                     args=(host, host_addresses, host_index, logs_path, rate_factor)
-                )
-            )
+           )
+           p.start()
+           host_loaders.append(p)
+
         for host_l in host_loaders:
             host_l.join()
 
