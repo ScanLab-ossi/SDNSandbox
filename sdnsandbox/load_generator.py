@@ -361,9 +361,9 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
             self.senders = []
             logger.info(
                 f"For host={host} period={period} we had "
-                "{success} successfully completed senders, "
-                "{timeout_terminated} senders we terminated due to timeout "
-                "and {failure} senders who finished the period in a failed state")
+                f"{success} successfully completed senders, "
+                f"{timeout_terminated} senders we terminated due to timeout "
+                f"and {failure} senders who finished the period in a failed state")
 
     def run_host_senders(self, host, dest, logs_path, period, rate_factor):
         host_senders = []
