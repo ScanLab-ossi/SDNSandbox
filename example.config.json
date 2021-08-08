@@ -23,7 +23,10 @@
       "pps_amplitude": 1000,
       "pps_wavelength": 25,
       "rate_factor_by_hosts": true,
-      "min_allowed_rate": 10
+      "min_allowed_rate": 10,
+      "period_shifter": {
+        "strategy": "host_index"
+      }
     },
     "monitor": {
       "type": "sflow",

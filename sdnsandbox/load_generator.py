@@ -75,6 +75,40 @@ class DestinationCalculatorFactory:
             raise ValueError("Unknown destination calculator strategy=%s" % strategy)
 
 
+class PeriodShifter(ABC):
+    # A period shifting interface to achieve constructive and destructive interference
+    @abstractmethod
+    def shift_period(self, period, host_index):
+        pass
+
+
+class IdentityPeriodShifter(PeriodShifter):
+    # The identity shifter - returning the same period given
+    def shift_period(self, period, host_index):
+        return period
+
+
+class HostIndexPeriodShifter(PeriodShifter):
+    # A shifter using the host's index, multiplied by a factor, to shift the period by
+    def __init__(self, index_factor = 1):
+        self.index_factor = index_factor
+
+    def shift_period(self, period, host_index):
+        return period + host_index * self.index_factor
+
+
+class PeriodShifterFactory:
+    @staticmethod
+    def create(period_shifter_conf: Dict[str, str]):
+        strategy = period_shifter_conf.get('strategy', 'identity')
+        if strategy == 'identity':
+            return IdentityPeriodShifter()
+        elif strategy == 'host_index':
+            return HostIndexPeriodShifter(int(period_shifter_conf.get('factor', 1)))
+        else:
+            raise ValueError("Unknown period shifting strategy=%s" % strategy)
+
+
 class LoadGeneratorFactory:
     @staticmethod
     def create(load_generator_conf):
@@ -87,8 +121,11 @@ class LoadGeneratorFactory:
             return DitgImixLoadGenerator(config)
         elif load_generator_conf["type"] == "NPING-UDP-IMIX":
             config = dacite.from_dict(data_class=NpingConfig, data=load_generator_conf,
-                                      config=dacite.Config(type_hooks={DestinationCalculator: lambda dc:
-                                      DestinationCalculatorFactory.create(dc)}))
+                                      config=dacite.Config(
+                                          type_hooks={
+                                              DestinationCalculator: lambda dc: DestinationCalculatorFactory.create(dc),
+                                              PeriodShifter: lambda ps: PeriodShifterFactory.create(ps)
+                                          }))
             return NpingUDPImixLoadGenerator(config)
         else:
             raise ValueError("Unknown topology type=%s" % load_generator_conf["type"])
@@ -288,6 +325,7 @@ class NpingConfig:
     min_allowed_rate: int = 10
     disable_cmd_ensure: bool = False
     destination_calculator: DestinationCalculator = StaticDeltaDestinationCalculator()
+    period_shifter: PeriodShifter = IdentityPeriodShifter()
     listen_port: int = 10000
     verbosity_level: int = -1
 
@@ -339,7 +377,9 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
     def run_host_load(self, host, host_addresses, host_index, logs_path, rate_factor):
         for period in range(self.config.periods):
             dest = self.config.destination_calculator.calculate_destination(period, host_index, host_addresses)
-            host_senders = self.run_host_senders(host, dest, logs_path, period, rate_factor)
+            # Shifting the period in order to achieve a load difference between network hosts
+            shifted_period = self.config.period_shifter.shift_period(period, host_index)
+            host_senders = self.run_host_senders(host, dest, logs_path, shifted_period, rate_factor)
             self.senders.extend(host_senders)
             success, timeout_terminated, failure = 0, 0, 0
             for sender in self.senders:
@@ -367,8 +407,8 @@ class NpingUDPImixLoadGenerator(LoadGenerator):
 
     def run_host_senders(self, host, dest, logs_path, period, rate_factor):
         host_senders = []
-        itg_send_opts = self.calculate_send_opts(period, dest, rate_factor)
-        for opts in itg_send_opts.items():
+        send_opts = self.calculate_send_opts(period, dest, rate_factor)
+        for opts in send_opts.items():
             nping_send_cmd = 'nping --udp -p %d -v%d ' % (self.config.listen_port, self.config.verbosity_level)
             nping_send_cmd += opts[1]
             log_path = pj(logs_path, "sender-" + host.IP() + "-" + opts[0] + ".log")
