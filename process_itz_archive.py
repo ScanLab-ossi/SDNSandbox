@@ -122,7 +122,7 @@ def parse_arguments():
     parser.add_argument('--zip-archive-name', default='itz_dataset.zip')
     parser.add_argument('--zip-archive-url', default='http://www.topology-zoo.org/files/archive.zip')
     parser.add_argument("-k", "--keep-zip", action='store_true', help="Keep the dataset zip for future processing")
-    parser.add_argument('-b', '--bins', nargs='+', default=[0, 50, 100, 250, 1000],
+    parser.add_argument('-b', '--bins', nargs='+', default=[0, 25, 50, 80, 110, 1000],
                         help='bins to be used for histogram plot')
     parser.add_argument("--plot-title", default='Network Sizes Distribution in ITZ Dataset')
     parser.add_argument("--plot-filename", default="itz_sizes.png")
