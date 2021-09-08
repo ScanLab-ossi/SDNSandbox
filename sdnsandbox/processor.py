@@ -72,7 +72,7 @@ class PlottingProcessor(Processor):
     ylabel: str = 'MB/s'
     filename_format: str = "link_load_{}.png"
 
-    def process(self, sampling_df: pd.DataFrame, output_path: str):
+    def process(self, sampling_df: pd.DataFrame, output_path: str, max_x: int = -1):
         plots_dir = pj(output_path, self.plots_dirname)
         logger.info("Creating directory " + plots_dir + " for plots")
         makedirs(plots_dir, exist_ok=True)
@@ -80,7 +80,7 @@ class PlottingProcessor(Processor):
         pd.plotting.register_matplotlib_converters()
         for column in sampling_df.keys():
             logger.info("Plotting samples for port " + str(column))
-            sampling_df[column].plot()
+            sampling_df[column][:max_x].plot()
             plt.xlabel(self.xlabel)
             plt.ylabel(self.ylabel)
             plt.tight_layout()
