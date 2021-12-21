@@ -1,0 +1,46 @@
+{
+  "runner": {
+    "network": {
+      "topology_creator": {
+        "type": "ITZ",
+        "graphml": "http://www.topology-zoo.org/files/Aarnet.graphml",
+        "bandwidth": {
+          "host_mbps": 10,
+          "switch_mbps": 100
+        }
+      },
+      "controller": {
+        "ip": "controller",
+        "port": 6653
+      },
+      "test_ping_all_full": false
+    },
+    "load_generator": {
+      "type": "NPING-UDP-IMIX",
+      "periods": 1200,
+      "period_duration_seconds": 30,
+      "pps_base_level": 1500,
+      "pps_amplitude": 1000,
+      "pps_wavelength": 25,
+      "rate_factor_by_hosts": true,
+      "min_allowed_rate": 10,
+      "period_shifter": {
+        "strategy": "host_index"
+      }
+    },
+    "monitor": {
+      "type": "sflow",
+      "pandas_processing": false
+    },
+    "post_processors": [
+      {
+        "type": "IQR",
+        "iqr_filename": "iqr.json"
+      },
+      {
+        "type": "Plotting",
+        "plots_dirname": "plots"
+      }
+    ]
+  }
+}

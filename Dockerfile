@@ -8,59 +8,46 @@ RUN \
         --yes \
         --no-install-recommends \
         --no-install-suggests \
+# sflowtool build dependencies
     git \
     ca-certificates \
     g++ \
     make \
     automake \
     autoconf \
-    openssh-server \
-    openssh-client \
-    bc \
-    unzip \
-    wget \
-    iputils-ping \
-    iproute2 \
-    net-tools \
+# python dependencies
     python3 \
     python3-pip \
     python3-setuptools \
-    sudo \
-    libsctp-dev \
-    mininet \
+# OvS
     openvswitch-switch \
+# D-ITG
     d-itg \
-    netcat \
+# Nping
+    nmap \
+# Mininet & deps
+    mininet \
+    iproute2 \
 # Clean up packages.
     && apt-get clean
 
-WORKDIR /tmp
-
 # install sflowtool
-RUN git clone http://github.com/sflow/sflowtool \
+WORKDIR /tmp
+RUN git clone https://github.com/sflow/sflowtool \
     && cd sflowtool \
     && ./boot.sh \
     && ./configure \
     && make \
     && make install
 
-WORKDIR /root
-
-# Create SSH keys
-RUN cat /dev/zero | ssh-keygen -q -N ""
-RUN cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-RUN chmod 400 /root/.ssh/*
-
-# HACK around https://github.com/dotcloud/docker/issues/5490
-RUN apt-get install -y tcpdump
-RUN mv /usr/sbin/tcpdump /usr/bin/tcpdump
-
 # Install python requirements
 ADD requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-ADD scripts ./scripts
+WORKDIR /tmp
+ADD sdnsandbox ./sdnsandbox
+ADD example.config.json ./example.config.json
+ADD docker-entry-point.sh ./docker-entry-point.sh
 
 # Default command
-ADD docker-entry-point.sh ./
 ENTRYPOINT ["./docker-entry-point.sh"]
