@@ -81,3 +81,19 @@ The plots will be found in the "plots" directory inside the experiment directory
     - If "ssh: connect to host _IP_ port 22: No route to host" is seen in the
     sender log file ("sender-_IP_.log") the sender has failed to start because
     of a failed connection and you should rerun the experiment.
+    
+## Citation
+If you find this repository useful in your research, please cite the following papers:
+
+```
+@article{SOLOMON2022109446,
+title = {SDNSandbox — Enabling learning-based innovation in provider networks},
+journal = {Computer Networks},
+volume = {219},
+pages = {109446},
+year = {2022},
+issn = {1389-1286},
+doi = {https://doi.org/10.1016/j.comnet.2022.109446},
+url = {https://www.sciencedirect.com/science/article/pii/S1389128622004807},
+author = {Yossi Solomon and Osnat Mokryn and Tsvi Kuflik}}
+```
